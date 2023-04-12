@@ -469,7 +469,7 @@ compute_x_RMSEs <- function(GOI,
 #' # assign GeneCOCOA ggplot to variable AND save GeneCOCOA ggplot to file
 #' p <- plot_volcano(res, filepath="/path/to/my/GeneCOCOA.volcano.png")
 #'}
-plot.volcano <- function(mystats, sig_label_cutoff=0.01, sig_colour="dodgerblue4", remove_outliers=FALSE, filepath="") {
+plot_volcano <- function(mystats, sig_label_cutoff=0.01, sig_colour="dodgerblue4", remove_outliers=FALSE, filepath="") {
 
   new_df <- merge(mystats$p_value_df, mystats$geom_mean_cor.df, by="geneset")
   new_df <- merge(new_df, mystats$geom_mean_expr.df, by="geneset")
@@ -482,8 +482,8 @@ plot.volcano <- function(mystats, sig_label_cutoff=0.01, sig_colour="dodgerblue4
   new_df$alpha <- scales::rescale(new_df$geom_mean_expr, to=c(0,0.75))
 
   if (remove_outliers) {
-    new_df = new_df[!new_df$logFC %in% boxplot.stats(new_df$logFC)$out,]
-    new_df = new_df[!new_df$neglog10.adj %in% boxplot.stats(new_df$neglog10.adj)$out,]
+    new_df = new_df[!new_df$logFC %in% boxplot_stats(new_df$logFC)$out,]
+    new_df = new_df[!new_df$neglog10.adj %in% boxplot_stats(new_df$neglog10.adj)$out,]
   }
 
   nudge_y_centre=diff(range(new_df$neglog10.adj))/2
@@ -592,7 +592,7 @@ get_best_predictors <- function(mystats, output = FALSE) {
 #'
 #' @keywords Internal
 #'
-plot.multiple_p_plots <- function(subdf) ggplot(subdf, aes(x=reorder(geneset, p), y=p, group=1,
+plot_multiple_p_plots <- function(subdf) ggplot(subdf, aes(x=reorder(geneset, p), y=p, group=1,
                                                            label=formatC(p, digits = 6)))+
   scale_x_discrete(limits=rev, name="") +
   scale_y_continuous(name ="p-value", limits=c(0,1.35)) +
@@ -600,7 +600,7 @@ plot.multiple_p_plots <- function(subdf) ggplot(subdf, aes(x=reorder(geneset, p)
   geom_text(size=6, hjust=-0.125, vjust=0.5) +
   coord_flip() +
   theme(
-    plot.title = element_text(size=21, hjust = 0.5),
+    plot_title = element_text(size=21, hjust = 0.5),
     axis.text = element_text(size = 18),
     axis.title = element_text(size = 21),
     legend.title =element_text(size = 18),
@@ -610,7 +610,7 @@ plot.multiple_p_plots <- function(subdf) ggplot(subdf, aes(x=reorder(geneset, p)
 
 
 #' Plots p-value ranking (x-axis=adjusted -log10(p), y= gene set names, ranked).
-#' This function works but \code{\link{plot.volcano}} is more informative.
+#' This function works but \code{\link{plot_volcano}} is more informative.
 #' @param my_stats Output of \code{\link{get_stats}}
 #' @param filepath Path + name of png to save If not provided, only the ggplot will be returned by this function.
 #'
@@ -618,7 +618,7 @@ plot.multiple_p_plots <- function(subdf) ggplot(subdf, aes(x=reorder(geneset, p)
 #' @export
 #'
 #'
-plot.basic_p_ranking <- function(my_stats, filepath)  {
+plot_basic_p_ranking <- function(my_stats, filepath)  {
 
 
   ggplot(my_stats$p_value_df %>%
@@ -633,7 +633,7 @@ plot.basic_p_ranking <- function(my_stats, filepath)  {
     geom_text(size=6,  hjust="inward", vjust="center") +
     coord_flip() +
     theme(
-      plot.title = element_text(size=21, hjust = 0.5),
+      plot_title = element_text(size=21, hjust = 0.5),
       axis.text = element_text(size = 18),
       axis.text.y = element_text(angle = 0), # to have the labels (gene set names) horizontally
       axis.title = element_text(size = 21),
@@ -652,7 +652,7 @@ plot.basic_p_ranking <- function(my_stats, filepath)  {
 
 #' Returns a ggplot with x=-log10(p.adj), y=mean intercept of gene set.
 #' The intercept can be interpreted as "GOI expression if all genes in the gene set were not expressed".
-#' This function works but \code{\link{plot.volcano}} is more informative.
+#' This function works but \code{\link{plot_volcano}} is more informative.
 #'
 #' @param mystats Output of \code{\link{get_stats}}.
 #' @param sig_label_cutoff
@@ -664,7 +664,7 @@ plot.basic_p_ranking <- function(my_stats, filepath)  {
 #' @export
 #'
 #'
-plot.p_vs_intercept <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodgerblue4", remove_outliers=FALSE, filepath) {
+plot_p_vs_intercept <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodgerblue4", remove_outliers=FALSE, filepath) {
 
   new_df <- merge(mystats$p_value_df, mystats$intercepts, by="geneset")
   new_df$label <- NA
@@ -676,7 +676,7 @@ plot.p_vs_intercept <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodg
 
 
   if (remove_outliers) {
-    new_df = new_df[!new_df$intercept %in% boxplot.stats(new_df$intercept)$out,]
+    new_df = new_df[!new_df$intercept %in% boxplot_stats(new_df$intercept)$out,]
   }
 
   nudge_y_centre=diff(range(new_df$intercept))/2
@@ -709,7 +709,7 @@ plot.p_vs_intercept <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodg
 
 
 #' Returns a ggplot with x=-log10(p.adj), y=mean coexpression of the gene set with the GOI.
-#' This function works but \code{\link{plot.volcano}} is more informative.
+#' This function works but \code{\link{plot_volcano}} is more informative.
 #'
 #' @param mystats Output of \code{\link{get_stats}}.
 #' @param sig_label_cutoff
@@ -721,7 +721,7 @@ plot.p_vs_intercept <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodg
 #' @export
 #'
 #'
-plot.p_vs_geom_mean_cor <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodgerblue4", remove_outliers=FALSE, filepath) {
+plot_p_vs_geom_mean_cor <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodgerblue4", remove_outliers=FALSE, filepath) {
 
   new_df <- merge(mystats$p_value_df, mystats$geom_mean_cor.df, by="geneset")
   new_df$label <- NA
@@ -732,7 +732,7 @@ plot.p_vs_geom_mean_cor <- function(mystats, sig_label_cutoff=0.05, sig_colour="
   new_df$alpha[new_df$p.adj<sig_label_cutoff] <- 1
 
   if (remove_outliers) {
-    new_df = new_df[!new_df$GOI_cor.geneset %in% boxplot.stats(new_df$GOI_cor.geneset)$out,]
+    new_df = new_df[!new_df$GOI_cor.geneset %in% boxplot_stats(new_df$GOI_cor.geneset)$out,]
   }
 
   nudge_y_centre=diff(range(new_df$GOI_cor.geneset))/2
