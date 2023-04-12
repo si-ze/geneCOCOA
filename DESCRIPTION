@@ -1,0 +1,23 @@
+Package: geneCOCOA
+Type: Package
+Title: Comparative co-expression analysis focussed on a gene of interest
+Version: 0.1.0
+Author: Simonida Zehr  <szehr@vrc.uni-frankfurt.de>
+Maintainer: Simonida Zehr <szehr@vrc.uni-frankfurt.de>
+Description: Gene-COCOA provides insights on the association networks of a gene of interest (GOI) whilst avoiding common artefacts arising from gene expression data.Gene-COCOA takes a list of curated gene sets as an input and ranks them according to their strength of association with the GOI. From each gene set, n genes are sampled as predictor variables in a linear regression modelling the expression of the GOI as the outcome variable. For bootstrapping, this procedure is repeated 1k times. The resulting model errors are compared in a t-test. Gene sets with adjusted P-values of <0.05 model the GOI expression better than random.
+    Use four spaces when indenting paragraphs within the Description.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:  
+  data.table,
+  dplyr,
+  scales,
+  psych,
+  stringr,
+  purrr,
+  msigdbr,
+  ggplot2,
+  ggpp,
+  ggrepel
+RoxygenNote: 7.2.3
