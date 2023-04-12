@@ -36,8 +36,7 @@ Dot size and alpha reflect the (geometric) mean expression of all genes in a res
 \examples{
 \dontrun{
 expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
-res <- get_stats(geneset_list=\code{\link{get_msigigdb_genesets(...), GOI="PDGFD"}}, GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
-
+res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
 # show GeneCOCOA ggplot in "Plots" window
 plot_volcano(res)
 

@@ -1,3 +1,6 @@
+#' @import data.table dplyr scales purrr psych
+#' @import ggplot2 ggrepel ggpp stringr ggrepel
+NULL
 library(data.table)
 library(dplyr)
 library(ggplot2)
@@ -8,7 +11,6 @@ library(ggrepel)
 library(purrr)
 library(msigdbr)
 library(ggpp)
-library(ggrepel)
 
 
 #
@@ -30,7 +32,7 @@ library(ggrepel)
 #' # let CAD_disease: data frame holding expression data in coronary artery disease with rows=genes, columns=samples
 #'
 #' expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
-#' res <- get_stats(geneset_list=\code{\link{get_msigigdb_genesets("..."), GOI="PDGFD"}}, GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
+#' res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
 #'}
 get_stats <- function(geneset_list,
                       GOI,
@@ -457,8 +459,7 @@ compute_x_RMSEs <- function(GOI,
 #' @examples
 #' \dontrun{
 #' expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
-#' res <- get_stats(geneset_list=\code{\link{get_msigigdb_genesets(...), GOI="PDGFD"}}, GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
-#'
+#' res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
 #' # show GeneCOCOA ggplot in "Plots" window
 #' plot_volcano(res)
 #'
@@ -530,7 +531,7 @@ plot.volcano <- function(mystats, sig_label_cutoff=0.01, sig_colour="dodgerblue4
 #' #' # let CAD_disease: data frame holding expression data in coronary artery disease with rows=genes, columns=samples
 #'
 #' expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
-#' res <- get_stats(geneset_list=\code{\link{get_msigigdb_genesets(...), GOI="PDGFD"}}, GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
+#' res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
 #' gene_comb_ranking <- get_best_predictors(mystats=res, output="df")
 #' }
 get_best_predictors <- function(mystats, output = FALSE) {
@@ -769,11 +770,11 @@ plot.p_vs_geom_mean_cor <- function(mystats, sig_label_cutoff=0.05, sig_colour="
 #'
 #' @examples
 #' \dontrun{
-#' # assign gene set collection to variable and pass to  \code{\link{get_stats}}
+#' # assign gene set collection to variable and pass to get_stats
 #' all_hallmark_gs <- get_msigdb_genesets("HALLMARK")
 #' res <- get_stats(geneset_list=all_hallmark_gs, GOI="PDGFD",  ...)
 #'
-#' # call directly in \code{\link{get_stats}}
+#' # call directly in get_stats()
 #' res <- get_stats(geneset_list=get_msigdb_genesets("HALLMARK"), ...)
 #' }
 get_msigdb_genesets <- function(genesets="", remove_prefix=TRUE) {

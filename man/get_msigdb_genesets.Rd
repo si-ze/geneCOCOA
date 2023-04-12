@@ -19,11 +19,11 @@ Return a collection of curated gene sets from the MSigDB.
 }
 \examples{
 \dontrun{
-# assign gene set collection to variable and pass to  \code{\link{get_stats}}
+# assign gene set collection to variable and pass to get_stats
 all_hallmark_gs <- get_msigdb_genesets("HALLMARK")
 res <- get_stats(geneset_list=all_hallmark_gs, GOI="PDGFD",  ...)
 
-# call directly in \code{\link{get_stats}}
+# call directly in get_stats()
 res <- get_stats(geneset_list=get_msigdb_genesets("HALLMARK"), ...)
 }
 }
