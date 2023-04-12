@@ -5,10 +5,14 @@
 \title{Get combination of genes which model the GOI best (based on root mean square error of regression model).
 Both, samples from real gene sets and from random combinations are stored and compared.}
 \usage{
-get_best_predictors(mystats, output = FALSE)
+get_best_predictors(mystats, GOI, expr, output = FALSE)
 }
 \arguments{
 \item{mystats}{Output of \code{\link{get_stats}}.}
+
+\item{GOI}{A string specifying the GOI gene symbol.}
+
+\item{expr}{The complete expression data frame.}
 
 \item{output}{If set to "df", a data frame will be returned which provides an overview of all predictor combinations and their origins (gene set name or "RANDOM"), together with their RMSEs. If set to "cor", the coexpression matrix of predictors and GOI is returned. Otherwise, simply the best set is returned together with its origin and RMSE.}
 }
@@ -25,6 +29,6 @@ Both, samples from real gene sets and from random combinations are stored and co
 
 expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
 res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
-gene_comb_ranking <- get_best_predictors(mystats=res, output="df")
+gene_comb_ranking <- get_best_predictors(mystats=res, GOI="PDGFD", expr=CAD_disease, output="df")
 }
 }

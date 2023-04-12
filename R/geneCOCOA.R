@@ -1,16 +1,6 @@
 #' @import data.table dplyr scales purrr psych
 #' @import ggplot2 ggrepel ggpp stringr ggrepel
 NULL
-library(data.table)
-library(dplyr)
-library(ggplot2)
-library(scales)
-library(psych)
-library(stringr)
-library(ggrepel)
-library(purrr)
-library(msigdbr)
-library(ggpp)
 
 
 #
@@ -521,6 +511,8 @@ plot_volcano <- function(mystats, sig_label_cutoff=0.01, sig_colour="dodgerblue4
 #' Both, samples from real gene sets and from random combinations are stored and compared.
 #'
 #' @param mystats Output of \code{\link{get_stats}}.
+#' @param GOI A string specifying the GOI gene symbol.
+#' @param expr The complete expression data frame.
 #' @param output If set to "df", a data frame will be returned which provides an overview of all predictor combinations and their origins (gene set name or "RANDOM"), together with their RMSEs. If set to "cor", the coexpression matrix of predictors and GOI is returned. Otherwise, simply the best set is returned together with its origin and RMSE.
 #'
 #' @return If output=="df": data frame of rankings of gene combinations. If output=="cor": coexpression matrix between the best gene combinations and the GOI. Else: df row holding best gene combination and its RMSE.
@@ -532,9 +524,9 @@ plot_volcano <- function(mystats, sig_label_cutoff=0.01, sig_colour="dodgerblue4
 #'
 #' expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
 #' res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
-#' gene_comb_ranking <- get_best_predictors(mystats=res, output="df")
+#' gene_comb_ranking <- get_best_predictors(mystats=res, GOI="PDGFD", expr=CAD_disease, output="df")
 #' }
-get_best_predictors <- function(mystats, output = FALSE) {
+get_best_predictors <- function(mystats, GOI, expr, output = FALSE) {
   # flatten the list of lists into dataframe with
   # rownames=combination of genes, column=RMSEs
   all_RMSEs.real.df <- as.data.frame(unlist(mystats$all_RMSEs.real))
