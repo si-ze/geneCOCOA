@@ -1,5 +1,9 @@
-#' @import data.table dplyr scales purrr psych
-#' @import ggplot2 ggrepel ggpp stringr ggrepel
+#' @rawNamespace import(data.table, except = c(last, first, between, transpose))
+#' @rawNamespace import(psych, except=c(alpha, rescale, "%+%"))
+#' @rawNamespace import(scales, except=c(discard, alpha))
+#' @import dplyr purrr
+#' @import ggplot2 ggrepel ggpp stringr
+#'
 NULL
 
 
@@ -114,7 +118,7 @@ get_stats <- function(geneset_list,
       random_RMSEs <- my_rand$RMSEs
       geom_mean_cors <- my_rand$geom_mean_cors
 
-      low_power.p <- t.test(real_RMSEs,
+      low_power.p <- t.test(unlist(real_RMSEs),
                             unlist(random_RMSEs),
                             paired=FALSE, alternative="less")
       low_power.p_value_list[[paste(my_set_name,
