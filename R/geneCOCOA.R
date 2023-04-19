@@ -344,6 +344,14 @@ get_geom_mean_expr <- function(t.tpm.genes_in_set) {
   # the geometric mean per column, i.e. the mean gene expression across the samples
   geom_means_per_gene_list <- psych::geometric.mean(t.tpm.genes_in_set)
 
+  # if less than 75% of the genes have a 0 expression, replace 0 with 0.01
+  if ((length(geom_means_per_gene_list[geom_means_per_gene_list==0])/length(geom_means_per_gene_list))<0.75) {
+    geom_means_per_gene_list[geom_means_per_gene_list==0] <- 0.01
+  }
+  # otherwise, the geometric mean for this dataset will return 0
+  # if at least one value in the data set is 0, geometric mean returns 0
+
+
   # to obtain the base expression of the gene set,
   # take again the geom. mean, this time across all gene means
   base_mean_expr <- psych::geometric.mean(unlist(geom_means_per_gene_list))
@@ -614,34 +622,23 @@ plot_multiple_p_plots <- function(subdf) ggplot(subdf, aes(x=reorder(geneset, p)
 #' @export
 #'
 #'
-plot_basic_p_ranking <- function(my_stats, filepath)  {
-
-
-  ggplot(my_stats$p_value_df %>%
-           arrange(neglog10.adj, rev(geneset)) %>%
+plot_basic_p_ranking <- function (my_stats, filepath)
+{
+  ggplot(my_stats$p_value_df %>% arrange(neglog10.adj, rev(geneset)) %>%
            mutate(geneset = factor(geneset, levels = geneset)),
-         aes(x=geneset,
-             y=neglog10.adj, group=1, label=formatC(p.adj, digits = 6))) +
-    scale_x_discrete(name="gene set") +
-    scale_y_continuous(name ="-log10(p.adj)") +
-    geom_point()  + geom_line() +
-    ggthemes::theme_stata() +
-    geom_text(size=6,  hjust="inward", vjust="center") +
-    coord_flip() +
+         aes(x = geneset, y = neglog10.adj, group = 1, label = formatC(p.adj,
+                                                                       digits = 6))) + scale_x_discrete(name = "gene set") +
+    scale_y_continuous(name = "-log10(p.adj)") + geom_point() +
+    theme_minimal() +
+    geom_line() + geom_text(size = 6,
+                            hjust = "inward", vjust = "center") + coord_flip() +
     theme(
-      plot_title = element_text(size=21, hjust = 0.5),
-      axis.text = element_text(size = 18),
-      axis.text.y = element_text(angle = 0), # to have the labels (gene set names) horizontally
-      axis.title = element_text(size = 21),
-      legend.title =element_text(size = 18),
-      legend.text =  element_text(size = 18)
-
-    )
-  ggsave(filename=filepath,
-         path=getwd(),
-         width=10, height=25, units="in", dpi=300)
+      axis.text = element_text(size = 18), axis.text.y = element_text(angle = 0),
+      axis.title = element_text(size = 21), legend.title = element_text(size = 18),
+      legend.text = element_text(size = 18))
+  ggsave(filename = filepath,  width = 10, height = 25,
+         units = "in", dpi = 300)
 }
-
 
 
 
