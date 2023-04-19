@@ -482,6 +482,7 @@ plot_volcano <- function(mystats, sig_label_cutoff=0.01, sig_colour="dodgerblue4
   new_df$alpha <- 0.7
   new_df$alpha[new_df$p.adj<sig_label_cutoff] <- 1
   new_df$alpha <- scales::rescale(new_df$geom_mean_expr, to=c(0,0.75))
+  new_df$size <- scales::rescale(new_df$geom_mean_expr, to=c(5,20))
 
   if (remove_outliers) {
     new_df = new_df[!new_df$logFC %in% boxplot_stats(new_df$logFC)$out,]
@@ -493,7 +494,7 @@ plot_volcano <- function(mystats, sig_label_cutoff=0.01, sig_colour="dodgerblue4
   nudge_x=diff(range(new_df$logFC))/15
 
   my_plot <- ggplot(new_df, aes(x=logFC, y=neglog10.adj, label=label)) +
-    geom_point(alpha=new_df$alpha, col=new_df$col, size=new_df$geom_mean_expr) +
+    geom_point(alpha=new_df$alpha, col=new_df$col, size=new_df$size) +
     geom_text_repel(aes( x=logFC, y=neglog10.adj, label=label),
                     size=3,
                     col="black",
