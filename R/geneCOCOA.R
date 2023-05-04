@@ -450,7 +450,8 @@ compute_x_RMSEs <- function(GOI,
 #' Dot size and alpha reflect the (geometric) mean expression of all genes in a respective gene set.
 #'
 #' @param mystats Output of \code{\link{get_stats}}.
-#' @param sig_label_cutoff At which p.adj-level should points be labelled? Default=0.01.
+#' @param sig_label_cutoff At which -log(p.adj) value should points be labelled? Default=2(=-log(p.adj=0.01).
+#' @param sig_col_cutoff At which p.adj value should points be coloured (instead of grey)? Defaul p.adj=0.01.
 #' @param sig_colour Which colour should significant dots have?
 #' @param remove_outliers Should outliers (in terms of x-axis and y-axis) be removed. Default is FALSE; you should stick with this unless you get very cluttered plots.
 #' @param filepath  Path + name of png to save If not provided, only the ggplot will be returned by this function.
@@ -471,52 +472,47 @@ compute_x_RMSEs <- function(GOI,
 #' # assign GeneCOCOA ggplot to variable AND save GeneCOCOA ggplot to file
 #' p <- plot_volcano(res, filepath="/path/to/my/GeneCOCOA.volcano.png")
 #'}
-plot_volcano <- function(mystats, sig_label_cutoff=0.01, sig_colour="dodgerblue4", remove_outliers=FALSE, filepath="") {
-
-  new_df <- merge(mystats$p_value_df, mystats$geom_mean_cor.df, by="geneset")
-  new_df <- merge(new_df, mystats$geom_mean_expr.df, by="geneset")
+plot_volcano <- function (mystats, sig_label_cutoff = 2, sig_col_cutoff =0.01, sig_colour = "dodgerblue4",
+                          remove_outliers = FALSE, filepath = "")
+{
+  new_df <- merge(mystats$p_value_df, mystats$geom_mean_cor.df,
+                  by = "geneset")
+  new_df <- merge(new_df, mystats$geom_mean_expr.df, by = "geneset")
   new_df$label <- NA
-  new_df$label[new_df$p.adj<sig_label_cutoff] <- sapply(new_df$geneset[new_df$p.adj<sig_label_cutoff],  function(x) stringr::str_wrap(stringr::str_replace_all(x, "_", " "),width = 10))
+  new_df$label[new_df$neglog10.adj >= sig_label_cutoff] <- sapply(new_df$geneset[new_df$neglog10.adj >=
+                                                                                   sig_label_cutoff], function(x) stringr::str_wrap(stringr::str_replace_all(x,
+                                                                                                                                                             "_", " "), width = 10))
   new_df$col <- "grey"
-  new_df$col[new_df$p.adj<sig_label_cutoff] <- sig_colour
-  new_df$alpha <- 0.7
-  new_df$alpha[new_df$p.adj<sig_label_cutoff] <- 1
-  new_df$alpha <- scales::rescale(new_df$geom_mean_expr, to=c(0,0.75))
-  new_df$size <- scales::rescale(new_df$geom_mean_expr, to=c(5,20))
-
+  new_df$col[new_df$p.adj < sig_col_cutoff] <- sig_colour
+  new_df$alpha <- 0.5
+  # new_df$alpha[new_df$p.adj < sig_label_cutoff] <- 1
+  # new_df$alpha <- scales::rescale(new_df$geom_mean_expr, to = c(0,
+  #     0.75))
+  new_df$size <- scales::rescale(new_df$geom_mean_expr, to = c(5,
+                                                               20))
   if (remove_outliers) {
-    new_df = new_df[!new_df$logFC %in% boxplot_stats(new_df$logFC)$out,]
-    new_df = new_df[!new_df$neglog10.adj %in% boxplot_stats(new_df$neglog10.adj)$out,]
+    new_df = new_df[!new_df$logFC %in% boxplot_stats(new_df$logFC)$out,
+    ]
+    new_df = new_df[!new_df$neglog10.adj %in% boxplot_stats(new_df$neglog10.adj)$out,
+    ]
   }
-
-  nudge_y_centre=diff(range(new_df$neglog10.adj))/2
-  nudge_y=diff(range(new_df$neglog10.adj))/15
-  nudge_x=diff(range(new_df$logFC))/15
-
-  my_plot <- ggplot(new_df, aes(x=logFC, y=neglog10.adj, label=label)) +
-    geom_point(alpha=new_df$alpha, col=new_df$col, size=new_df$size) +
-    geom_text_repel(aes( x=logFC, y=neglog10.adj, label=label),
-                    size=3,
-                    col="black",
-                    #min.segment.length = unit(0, 'lines'),
-                    segment.color=sig_colour,
-                    segment.alpha=0.4,
-                    #nudge_y = ifelse(new_df$neglog10.adj >nudge_y_centre, nudge_y, -nudge_y),
-                    position=position_nudge_center(#x = nudge_x,y = nudge_y,
-                      direction = "split"),
-                    hjust = "outward", vjust = "outward"
-
-    ) +
-    theme_minimal(base_size=14) +
-    scale_y_continuous("-log10(p.adj)") +
-    scale_x_continuous("log2(diffcoexp)", limits=c(1.25*(-max(abs(new_df$logFC))), 1.25*max(abs(new_df$logFC))))
-
-  if (nchar(filepath)>0) {
-    ggsave(filename=filepath, plot=my_plot, dpi=300)
+  nudge_y_centre = diff(range(new_df$neglog10.adj))/2
+  nudge_y = diff(range(new_df$neglog10.adj))/15
+  nudge_x = diff(range(new_df$logFC))/15
+  my_plot <- ggplot(new_df, aes(x = logFC, y = neglog10.adj,
+                                label = label)) + geom_point(alpha = new_df$alpha, col = new_df$col,
+                                                             size = new_df$size) + geom_text_repel(aes(x = logFC,
+                                                                                                       y = neglog10.adj, label = label), size = 3, col = "black",
+                                                                                                   segment.color = sig_colour, segment.alpha = 0.4, position = position_nudge_center(direction = "split"),
+                                                                                                   hjust = "outward", vjust = "outward") + theme_minimal(base_size = 14) +
+    scale_y_continuous("-log10(p.adj)") + scale_x_continuous("log2(diffcoexp)",
+                                                             limits = c(1.25 * (-max(abs(new_df$logFC))), 1.25 * max(abs(new_df$logFC))))
+  if (nchar(filepath) > 0) {
+    ggsave(filename = filepath, plot = my_plot, dpi = 300, height=10, width=10, units="in")
   }
-
   return(my_plot)
 }
+
 
 
 

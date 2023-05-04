@@ -8,7 +8,8 @@ Dot size and alpha reflect the (geometric) mean expression of all genes in a res
 \usage{
 plot_volcano(
   mystats,
-  sig_label_cutoff = 0.01,
+  sig_label_cutoff = 2,
+  sig_col_cutoff = 0.01,
   sig_colour = "dodgerblue4",
   remove_outliers = FALSE,
   filepath = ""
@@ -17,7 +18,9 @@ plot_volcano(
 \arguments{
 \item{mystats}{Output of \code{\link{get_stats}}.}
 
-\item{sig_label_cutoff}{At which p.adj-level should points be labelled? Default=0.01.}
+\item{sig_label_cutoff}{At which -log(p.adj) value should points be labelled? Default=2(=-log(p.adj=0.01).}
+
+\item{sig_col_cutoff}{At which p.adj value should points be coloured (instead of grey)? Defaul p.adj=0.01.}
 
 \item{sig_colour}{Which colour should significant dots have?}
 
