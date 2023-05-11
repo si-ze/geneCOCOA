@@ -7,6 +7,34 @@
 NULL
 
 
+
+
+#' Tests if a gene set is large enough to provide for enough distinguishable gene-combinations in a given number of (boostrap runs)
+#'
+#' @param samplesize The number of genes in one sample to be drawn.
+#' @param my_set_size The size of the pool to draw from (size of this MSigDB gene set)
+#' @param nsims Number of bootstrap runs
+#'
+#' @keywords Internal
+#'
+enough_power <- function(samplesize, my_set_size, nsims) {
+
+  n=my_set_size
+  k=samplesize
+
+  # if there there are more unique combinations possible than there are boot strap runs,
+  # gene set has enough statistical power
+  if (choose(n=my_set_size, k=samplesize)>nsims) {
+    return(TRUE)
+  } else { # low-power gene set
+    return(choose(n=my_set_size, k=samplesize))
+    # return number of bootstraps with distinct gene combinations
+  }
+
+
+}
+
+
 #
 #' Main function of Gene-COCOA: performs statistical analysis.
 #'
@@ -80,10 +108,7 @@ get_stats <- function(geneset_list,
 
 
 
-
-    # a gene set size of 17 is large enough to provide for more than 1000 unique samples
-    # see binomial coefficient: while choose(16,13)=560, choose(17,13)=2380
-    if (my_set_size>16) {
+    if (enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims)==TRUE) {
       real_RMSEs <- compute_x_RMSEs(GOI,
                                     GOI_expr,
                                     my_t.tpms=t.tpm.genes_in_set,
@@ -106,10 +131,11 @@ get_stats <- function(geneset_list,
 
     }
     else {
-      my_sample <- cbind.data.frame(GOI=GOI_expr,
-                                    t.tpm.genes_in_set)
-      my_model <- stats::lm(paste(GOI, "~ ."),data=my_sample)
-      real_RMSE <- rmse(my_model)
+      real_RMSEs <- compute_x_RMSEs(GOI,
+                                    GOI_expr,
+                                    my_t.tpms=t.tpm.genes_in_set,
+                                    samplesize=samplesize,
+                                    nsims=enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims))$RMSEs
 
       my_rand <- compute_x_RMSEs(GOI,
                                  GOI_expr,
@@ -160,7 +186,7 @@ get_stats <- function(geneset_list,
 
 
   geom_mean_cor.df <- merge(geom_mean_cor.real.df,  geom_mean_cor.random.df, by="geneset")
-  geom_mean_cor.df$logFC <- log2(geom_mean_cor.df$GOI_cor.geneset/geom_mean_cor.df$GOI_cor.background)
+  geom_mean_cor.df$logFC <- log2(geom_mean_cor.df$GOI_cor.geneset/mean(geom_mean_cor.df$GOI_cor.background))
 
 
 
