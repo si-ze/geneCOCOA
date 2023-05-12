@@ -107,7 +107,6 @@ get_stats <- function(geneset_list,
     t.tpm.my_rest_genes$GOI <- NULL
 
 
-
     if (enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims)==TRUE) {
       real_RMSEs <- compute_x_RMSEs(GOI,
                                     GOI_expr,
@@ -144,6 +143,7 @@ get_stats <- function(geneset_list,
       random_RMSEs <- my_rand$RMSEs
       geom_mean_cors <- my_rand$geom_mean_cors
 
+
       low_power.p <- t.test(unlist(real_RMSEs),
                             unlist(random_RMSEs),
                             paired=FALSE, alternative="less")
@@ -151,16 +151,13 @@ get_stats <- function(geneset_list,
                                     " (", my_set_size, ")",
                                     sep="")]] <- low_power.p$p.value
 
-
       all_RMSEs.real[[my_set_name]] <- real_RMSEs
       all_RMSEs.random[[my_set_name]] <- random_RMSEs
     }
 
-
     geom_mean_cors <- as.vector(unlist(geom_mean_cors))
     geom_mean_cors <- geom_mean_cors[!is.na(geom_mean_cors) & !is.infinite(geom_mean_cors)]
     geom_mean_cor.random[[my_set_name]] <- mean(geom_mean_cors)
-
 
     geom_mean_expr[[my_set_name]] <- get_geom_mean_expr(t.tpm.genes_in_set)
   }
