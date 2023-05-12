@@ -152,7 +152,7 @@ get_stats <- function(geneset_list,
                                     sep="")]] <- low_power.p$p.value
 
 
-      all_RMSEs.real[[my_set_name]] <- real_RMSE
+      all_RMSEs.real[[my_set_name]] <- real_RMSEs
       all_RMSEs.random[[my_set_name]] <- random_RMSEs
     }
 
