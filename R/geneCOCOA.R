@@ -9,32 +9,6 @@ NULL
 
 
 
-#' Tests if a gene set is large enough to provide for enough distinguishable gene-combinations in a given number of (boostrap runs)
-#'
-#' @param samplesize The number of genes in one sample to be drawn.
-#' @param my_set_size The size of the pool to draw from (size of this MSigDB gene set)
-#' @param nsims Number of bootstrap runs
-#'
-#' @keywords Internal
-#'
-enough_power <- function(samplesize, my_set_size, nsims) {
-
-  n=my_set_size
-  k=samplesize
-
-  # if there there are more unique combinations possible than there are boot strap runs,
-  # gene set has enough statistical power
-  if (choose(n=my_set_size, k=samplesize)>nsims) {
-    return(TRUE)
-  } else { # low-power gene set
-    return(choose(n=my_set_size, k=samplesize))
-    # return number of bootstraps with distinct gene combinations
-  }
-
-
-}
-
-
 #
 #' Main function of Gene-COCOA: performs statistical analysis.
 #'
@@ -62,6 +36,8 @@ get_stats <- function(geneset_list,
                       expr_df,
                       samplesize=ncol((expr_df)/10),
                       nsims=1000) {
+
+  message("STARTED calculating stats ", format(Sys.time(), "%H:%M:%S"))
 
 
   p_value_list <- list()
@@ -94,6 +70,8 @@ get_stats <- function(geneset_list,
     my_set_name <- names(geneset_list[i]) # get name of gene set
     my_set_size <- ncol(t.tpm.genes_in_set)
 
+
+
     intercepts[[my_set_name]] <- get_intercept(GOI, GOI_expr, t.tpm.genes_in_set)
     mean_cors[[my_set_name]] <- get_mean_cor(GOI, GOI_expr, t.tpm.genes_in_set)
     geom_mean_cor.real[[my_set_name]] <- get_geom_mean_cor(GOI, GOI_expr, t.tpm.genes_in_set)
@@ -107,6 +85,9 @@ get_stats <- function(geneset_list,
     t.tpm.my_rest_genes$GOI <- NULL
 
 
+    cat(paste(format(Sys.time(), "%H:%M:%S"), my_set_name, my_set_size, enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims), sep="\t"), "\n")
+
+    if (my_set_size>1) { # so that we don't sample from empty gene sets
     if (enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims)==TRUE) {
       real_RMSEs <- compute_x_RMSEs(GOI,
                                     GOI_expr,
@@ -130,16 +111,17 @@ get_stats <- function(geneset_list,
 
     }
     else {
-      real_RMSEs <- compute_x_RMSEs(GOI,
+      real_RMSEs <- compute_all_RMSEs(GOI,
                                     GOI_expr,
                                     my_t.tpms=t.tpm.genes_in_set,
-                                    samplesize=samplesize,
-                                    nsims=enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims))$RMSEs
+                                    samplesize=samplesize)$RMSEs
 
       my_rand <- compute_x_RMSEs(GOI,
                                  GOI_expr,
                                  my_t.tpms=t.tpm.my_rest_genes,
-                                 samplesize=samplesize, nsims=nsims, geom_mean_cors = TRUE)
+                                 samplesize=samplesize,
+                                 nsims=enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims),
+                                 geom_mean_cors = TRUE)
       random_RMSEs <- my_rand$RMSEs
       geom_mean_cors <- my_rand$geom_mean_cors
 
@@ -148,7 +130,7 @@ get_stats <- function(geneset_list,
                             unlist(random_RMSEs),
                             paired=FALSE, alternative="less")
       low_power.p_value_list[[paste(my_set_name,
-                                    " (", my_set_size, ")",
+                                    "_(", enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims), ")",
                                     sep="")]] <- low_power.p$p.value
 
       all_RMSEs.real[[my_set_name]] <- real_RMSEs
@@ -160,7 +142,9 @@ get_stats <- function(geneset_list,
     geom_mean_cor.random[[my_set_name]] <- mean(geom_mean_cors)
 
     geom_mean_expr[[my_set_name]] <- get_geom_mean_expr(t.tpm.genes_in_set)
-  }
+
+  } # close IF (not empty gene set)
+  } # close FOR (iteration across gene sets)
 
 
   p_value_df <- data.frame("geneset"=names(p_value_list),
@@ -172,6 +156,8 @@ get_stats <- function(geneset_list,
   low_power.p_value_df <- data.frame("geneset"=names(low_power.p_value_list),
                                      "p"=unlist(low_power.p_value_list),
                                      "neglog10"=get_neg_log10(unlist(low_power.p_value_list)))
+  low_power.p_value_df$p.adj <- p.adjust(low_power.p_value_df$p, method = "BH")
+  low_power.p_value_df$neglog10.adj <- get_neg_log10(unlist(low_power.p_value_df$p.adj))
 
   # transform "intercepts" from named list to dataframe
   intercepts <- stack(intercepts) %>% rename("intercept"="values", "geneset"="ind")
@@ -185,6 +171,8 @@ get_stats <- function(geneset_list,
   geom_mean_cor.df <- merge(geom_mean_cor.real.df,  geom_mean_cor.random.df, by="geneset")
   geom_mean_cor.df$logFC <- log2(geom_mean_cor.df$GOI_cor.geneset/mean(geom_mean_cor.df$GOI_cor.background))
 
+
+  message("ENDED calculating stats ", format(Sys.time(), "%H:%M:%S"))
 
 
   return(list("p_value_df"=p_value_df,
@@ -300,6 +288,32 @@ get_expr_info.file <- function(expr_file, GOI, clean=TRUE) {
   return(list("expr_df"=expr_df,
               "GOI_expr"=GOI_expr))
 }
+
+
+
+
+#' Tests if a gene set is large enough to provide for enough distinguishable gene-combinations in a given number of (boostrap runs)
+#'
+#' @param samplesize The number of genes in one sample to be drawn.
+#' @param my_set_size The size of the pool to draw from (size of this MSigDB gene set)
+#' @param nsims Number of bootstrap runs
+#'
+#' @keywords Internal
+#'
+enough_power <- function(samplesize, my_set_size, nsims) {
+
+  # if there there are more unique combinations possible than there are boot strap runs,
+  # gene set has enough statistical power
+  if (choose(n=my_set_size, k=samplesize)>nsims) {
+    return(TRUE)
+  } else { # low-power gene set
+    return(choose(n=my_set_size, k=samplesize))
+    # return number of bootstraps with distinct gene combinations
+  }
+
+
+}
+
 
 
 #' Returns -log10 of given p-value list
@@ -464,6 +478,44 @@ compute_x_RMSEs <- function(GOI,
     #my_intercepts[[my_gene_names]] <- unlist(unname(coefficients(my_model)[1]))
   }
 
+  return(list("RMSEs"=my_RMSEs, "geom_mean_cors"=my_geom_mean_cors))
+}
+
+#' Gets all combinations of <samplesize> genes from a given gene set and computes regression models.
+#'
+#' @param GOI
+#' @param GOI_expr
+#' @param my_t.tpms
+#' @param samplesize
+#' @param geom_mean_cors
+#'
+#' @return Returns a list with $RMSEs=root mean square errors of all regression models, $geom_mean_cors=geometric mean correlation of each sample with GOI
+#' @keywords Internal
+#'
+compute_all_RMSEs <- function(GOI,
+                              GOI_expr,
+                              my_t.tpms,
+                              samplesize=2,
+                              geom_mean_cors=FALSE) {
+
+  my_RMSEs <- list()
+  my_geom_mean_cors <- list()
+
+  # get all possible combinations of column indices (genes)
+  allcomb <- combn(x=ncol(my_t.tpms), m=samplesize)
+  # iterate over all
+  for (i in 1:ncol(allcomb)) {
+    my_sample <- my_t.tpms[,allcomb[,i]]
+    my_gene_names <- paste(names(my_sample), collapse=";")
+
+    if (geom_mean_cors) { my_geom_mean_cors[[my_gene_names]] <- get_geom_mean_cor(GOI, GOI_expr, my_t.tpms = my_sample) }
+
+    my_sample <- cbind.data.frame(GOI=GOI_expr,
+                                  my_sample)
+    my_model <- stats::lm(paste(GOI, "~ ."),data=my_sample)
+    my_RMSEs[[my_gene_names]] <- rmse(my_model)
+
+  }
   return(list("RMSEs"=my_RMSEs, "geom_mean_cors"=my_geom_mean_cors))
 }
 
