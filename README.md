@@ -70,3 +70,7 @@ plot_volcano(mystats=disease_res)
 ```
 
 The resulting plot shows the -log10(*P*~adj~) plottet against the "direction" of co-expression (stronger or weaker than mean co-expression of all genes with *LDLR*). The size of the points in each plot reflects the relative mean expression level of each gene set.
+
+![LDLR FH volcano](https://github.com/si-ze/geneCOCOA/assets/129768077/616492c8-bc4f-41ae-b382-e8cc7a1a3bea)
+
+
