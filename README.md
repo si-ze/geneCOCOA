@@ -2,6 +2,7 @@
 # GeneCOCOA
 
 GeneCOCOA (**co**mparative **co**-expression **a**naylsis focussed on a **gene** of interest) has been developed as a method to integrate prior knowledge (e.g. Gene Ontology, MSigDB genesets, ...) with co-expression analysis while focussing on one gene-of-interest (GOI). 
+
 After providing expression data from a specific experiment and defining a GOI, GeneCOCOA statistically ranks different gene sets/terms by strength of association with the GOI. GeneCOCOA thereby allows for functional annotation of experiment-specific expression data in a gene-centric manner. 
 
 
@@ -72,12 +73,12 @@ plot_volcano(mystats=disease_res)
 The resulting plot shows the -log10(*P*adj) plottet against the "direction" of co-expression (stronger or weaker than mean co-expression of all genes with *LDLR*). The size of the points in each plot reflects the relative mean expression level of each gene set.
 The plot is returned as a ggplot2 object by the function. If you would additionally like to save it directly, you can pass a location via the optional `filepath` parameter, e.g. `filepath="./LDLR.FH.volcano.png"`.
 
-![LDLR FH volcano](https://github.com/si-ze/geneCOCOA/assets/129768077/616492c8-bc4f-41ae-b382-e8cc7a1a3bea)
+<img src="https://github.com/si-ze/geneCOCOA/assets/129768077/616492c8-bc4f-41ae-b382-e8cc7a1a3bea" width="60%" height="60%">
 
 
 
 ### Side-by-side comparison of two GeneCOCOA results (same GOI, different conditions)
-GeneCOCOA also offers the option to visually compare the results for a GOI in two different conditions in a diverging bar plot. 
+GeneCOCOA also offers the option to visually compare the GeneCOCOA results for one GOI in two different conditions (diverging bar plot). 
 
 Therefore, we need to pass two results (produced by the `get_stats()` function). Please make sure that these were run with the **same GOI** and the **same geneset_collection**. (The function can only visualise two GeneCOCOA results, not check the validity of the comparison.)
 
