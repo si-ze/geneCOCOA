@@ -70,10 +70,10 @@ disease_res <- get_stats(geneset_collection=hallmark_sets,
 plot_volcano(mystats=disease_res)
 ```
 
-The resulting plot shows the -log10(*P*adj) plottet against the "direction" of co-expression (stronger or weaker than mean co-expression of all genes with *LDLR*). The size of the points in each plot reflects the relative mean expression level of each gene set.
+The resulting plot shows the -log10(*P*adj) plotted against the "direction" of co-expression (stronger or weaker than mean co-expression of all genes with *LDLR*). The size of the points in each plot reflects the relative mean expression level of each gene set.
 The plot is returned as a ggplot2 object by the function. If you would additionally like to save it directly, you can pass a location via the optional `filepath` parameter, e.g. `filepath="./LDLR.FH.volcano.png"`.
 
-<img src="https://github.com/si-ze/geneCOCOA/assets/129768077/616492c8-bc4f-41ae-b382-e8cc7a1a3bea" width="60%" height="60%">
+<img src="https://github.com/si-ze/geneCOCOA/assets/129768077/616492c8-bc4f-41ae-b382-e8cc7a1a3bea" width="40%" height="40%">
 
 
 
@@ -120,4 +120,5 @@ The resulting plot is returned as a ggplot2 object by the function. If you would
 
 ![LDLR FH diverging_bars](https://github.com/si-ze/geneCOCOA/assets/129768077/48d9caaf-b6bd-4921-8712-1b0672f34739)
 
+<img src="https://github.com/si-ze/geneCOCOA/assets/129768077/48d9caaf-b6bd-4921-8712-1b0672f34739" width="60%" height="60%">
 
