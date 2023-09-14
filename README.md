@@ -59,7 +59,7 @@ FH_disease <- FH %>% select(contains("FH"))
 disease_input <- get_expr_info(expr=FH_disease, GOI="LDLR")
 
 # run GeneCOCOA
-disease_res <- get_stats(geneset_list=hallmark_sets, 
+disease_res <- get_stats(geneset_collection=hallmark_sets, 
                          GOI="LDLR", 
                          GOI_expr=disease_input$GOI_expr,
                          expr_df=disease_input$expr_df, 
@@ -69,8 +69,54 @@ disease_res <- get_stats(geneset_list=hallmark_sets,
 plot_volcano(mystats=disease_res)
 ```
 
-The resulting plot shows the -log10(*P*~adj~) plottet against the "direction" of co-expression (stronger or weaker than mean co-expression of all genes with *LDLR*). The size of the points in each plot reflects the relative mean expression level of each gene set.
+The resulting plot shows the -log10(*P*adj) plottet against the "direction" of co-expression (stronger or weaker than mean co-expression of all genes with *LDLR*). The size of the points in each plot reflects the relative mean expression level of each gene set.
+The plot is returned as a ggplot2 object by the function. If you would additionally like to save it directly, you can pass a location via the optional `filepath` parameter, e.g. `filepath="./LDLR.FH.volcano.png"`.
 
 ![LDLR FH volcano](https://github.com/si-ze/geneCOCOA/assets/129768077/616492c8-bc4f-41ae-b382-e8cc7a1a3bea)
+
+
+
+### Side-by-side comparison of two GeneCOCOA results (same GOI, different conditions)
+GeneCOCOA also offers the option to visually compare the results for a GOI in two different conditions in a diverging bar plot. 
+
+Therefore, we need to pass two results (produced by the `get_stats()` function). Please make sure that these were run with the **same GOI** and the **same geneset_collection**. (The function can only visualise two GeneCOCOA results, not check the validity of the comparison.)
+
+For our example, we first need to generate GeneCOCOA results for the FH control samples as well.
+
+
+``` 
+# select only the columns containing control expression data
+FH_control <- FH %>% select(contains("Control"))
+
+# prepare expression data as GeneCOCOA input
+control_input <- get_expr_info(expr=FH_control, GOI="LDLR")
+
+# run GeneCOCOA
+control_res <- get_stats(geneset_collection=hallmark_sets, 
+                         GOI="LDLR", 
+                         GOI_expr=control_input$GOI_expr,
+                         expr_df=control_input$expr_df, 
+                         samplesize=2, nsims=1000)
+```
+
+Next, we pass the two results to `plot_control_vs_treatment()`. 
+
+
+```
+plot_control_vs_treatment(
+  control_res=control_res,
+  treatment_res=control_res,
+  treatment_label="FH",
+  control_label="control",
+  topN <- 10,
+  sort_by="treament"
+)
+```
+The "treatment" and "control" labels and the respective colours can be customised. The function returns the top n terms (customisable via the `topN` parameter), either with respect to the control or the treatment condition (`sort_by` parameter). 
+The resulting plot is returned as a ggplot2 object by the function. If you would additionally like to save it directly, you can pass a location via the optional `filepath` parameter, e.g. `filepath="./LDLR.FH.diverging_bars.png"`.
+
+
+
+![LDLR FH diverging_bars](https://github.com/si-ze/geneCOCOA/assets/129768077/48d9caaf-b6bd-4921-8712-1b0672f34739)
 
 
