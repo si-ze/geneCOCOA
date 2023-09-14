@@ -73,7 +73,7 @@ plot_volcano(mystats=disease_res)
 The resulting plot shows the -log10(*P*adj) plotted against the "direction" of co-expression (stronger or weaker than mean co-expression of all genes with *LDLR*). The size of the points in each plot reflects the relative mean expression level of each gene set.
 The plot is returned as a ggplot2 object by the function. If you would additionally like to save it directly, you can pass a location via the optional `filepath` parameter, e.g. `filepath="./LDLR.FH.volcano.png"`.
 
-<img align="center" width="50%" height="50%" src="https://github.com/si-ze/geneCOCOA/assets/129768077/616492c8-bc4f-41ae-b382-e8cc7a1a3bea">
+<img align="center" width="45%" height="45%" src="https://github.com/si-ze/geneCOCOA/assets/129768077/616492c8-bc4f-41ae-b382-e8cc7a1a3bea">
 
 
 
