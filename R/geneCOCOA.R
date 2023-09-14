@@ -1,9 +1,9 @@
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose))
 #' @rawNamespace import(psych, except=c(alpha, rescale, "%+%"))
 #' @rawNamespace import(scales, except=c(discard, alpha))
-#' @import dplyr purrr
+#' @import dplyr purrr forcats
 #' @import ggplot2 ggrepel ggpp stringr
-#'
+#' @import msigdbr gemma.R
 NULL
 
 
@@ -12,7 +12,7 @@ NULL
 #
 #' Main function of Gene-COCOA: performs statistical analysis.
 #'
-#' @param geneset_list A list of lists. Each list holds gene symbols of a specific gene set. Can be generated with \code{\link{get_msigdb_genesets}}
+#' @param geneset_collection A list of lists. Each list holds gene symbols of a specific gene set. Can be generated with \code{\link{get_msigdb_genesets}}
 #' @param GOI A string specifying the GOI gene symbol.
 #' @param GOI_expr The GOI expression per sample. Should be generated with get_expr_info(expr, GOI)$GOI_expr.
 #' @param expr_df Complete expression data. Should be generated with get_expr_info(expr, GOI)$expr_df.
@@ -28,14 +28,15 @@ NULL
 #' # let CAD_disease: data frame holding expression data in coronary artery disease with rows=genes, columns=samples
 #'
 #' expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
-#' res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
+#' res <- get_stats(geneset_collection=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
 #'}
-get_stats <- function(geneset_list,
+get_stats <- function(geneset_collection,
                       GOI,
                       GOI_expr,
                       expr_df,
                       samplesize=ncol((expr_df)/10),
-                      nsims=1000) {
+                      nsims=1000,
+                      verbose=TRUE) {
 
   message("STARTED calculating stats ", format(Sys.time(), "%H:%M:%S"))
 
@@ -48,15 +49,21 @@ get_stats <- function(geneset_list,
   geom_mean_cor.real <- list()
   geom_mean_cor.random <- list()
 
-  intercepts <- list()
-  mean_cors <- list()
+  # DELETE_intercepts
+  # intercepts <- list()
+  # DELETE_mean_cor
+  # mean_cors <- list()
 
   geom_mean_expr <- list()
 
-  for (i in 1:length(geneset_list)) {
+  if (verbose) {
+    cat(paste("time", "gene set", "set size", sep="\t"), "\n")
+  }
+
+  for (i in 1:length(geneset_collection)) {
 
 
-    my_genes_in_set <- as.vector(unlist(geneset_list[i]))
+    my_genes_in_set <- as.vector(unlist(geneset_collection[i]))
     my_genes_in_set <- gsub("-", "_", my_genes_in_set)
     tpm.genes_in_set <- expr_df[my_genes_in_set,]
     t.tpm.genes_in_set <- as.data.frame(t(tpm.genes_in_set))
@@ -67,13 +74,15 @@ get_stats <- function(geneset_list,
     t.tpm.genes_in_set$GOI <- NULL
 
 
-    my_set_name <- names(geneset_list[i]) # get name of gene set
+    my_set_name <- names(geneset_collection[i]) # get name of gene set
     my_set_size <- ncol(t.tpm.genes_in_set)
 
 
 
-    intercepts[[my_set_name]] <- get_intercept(GOI, GOI_expr, t.tpm.genes_in_set)
-    mean_cors[[my_set_name]] <- get_mean_cor(GOI, GOI_expr, t.tpm.genes_in_set)
+    # DELETE_intercepts
+    # intercepts[[my_set_name]] <- get_intercept(GOI, GOI_expr, t.tpm.genes_in_set)
+    # DELETE_mean_cor
+    # mean_cors[[my_set_name]] <- get_mean_cor(GOI, GOI_expr, t.tpm.genes_in_set)
     geom_mean_cor.real[[my_set_name]] <- get_geom_mean_cor(GOI, GOI_expr, t.tpm.genes_in_set)
 
     tpm.my_rest_genes <- expr_df[!(rownames(expr_df) %in% my_genes_in_set),]
@@ -84,10 +93,11 @@ get_stats <- function(geneset_list,
     t.tpm.my_rest_genes <- t.tpm.my_rest_genes %>% purrr::discard(~all(is.na(.)))
     t.tpm.my_rest_genes$GOI <- NULL
 
+    if (verbose) {
+      cat(paste(format(Sys.time(), "%H:%M:%S"), my_set_name, my_set_size, sep="\t"), "\n")
+    }
 
-    cat(paste(format(Sys.time(), "%H:%M:%S"), my_set_name, my_set_size, enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims), sep="\t"), "\n")
-
-    if (my_set_size>1) { # so that we don't sample from empty gene sets
+    if (my_set_size>=samplesize) { # so that we don't sample from empty gene sets
     if (enough_power(samplesize = samplesize, my_set_size = my_set_size, nsims=nsims)==TRUE) {
       real_RMSEs <- compute_x_RMSEs(GOI,
                                     GOI_expr,
@@ -149,20 +159,22 @@ get_stats <- function(geneset_list,
 
   p_value_df <- data.frame("geneset"=names(p_value_list),
                            "p"=unlist(p_value_list),
-                           "neglog10"=get_neg_log10(unlist(p_value_list)))
+                           "neglog10"=get_neg_log10(p_value_list))
   p_value_df$p.adj <- p.adjust(p_value_df$p, method = "BH")
-  p_value_df$neglog10.adj <- get_neg_log10(unlist(p_value_df$p.adj))
+  p_value_df$neglog10.adj <- get_neg_log10(p_value_df$p.adj)
 
   low_power.p_value_df <- data.frame("geneset"=names(low_power.p_value_list),
                                      "p"=unlist(low_power.p_value_list),
-                                     "neglog10"=get_neg_log10(unlist(low_power.p_value_list)))
+                                     "neglog10"=get_neg_log10(low_power.p_value_list))
   low_power.p_value_df$p.adj <- p.adjust(low_power.p_value_df$p, method = "BH")
-  low_power.p_value_df$neglog10.adj <- get_neg_log10(unlist(low_power.p_value_df$p.adj))
+  low_power.p_value_df$neglog10.adj <- get_neg_log10(low_power.p_value_df$p.adj)
 
   # transform "intercepts" from named list to dataframe
-  intercepts <- stack(intercepts) %>% rename("intercept"="values", "geneset"="ind")
+  # DELETE_intercepts
+  # intercepts <- stack(intercepts) %>% rename("intercept"="values", "geneset"="ind")
   geom_mean_expr.df <- stack(geom_mean_expr) %>% rename("geom_mean_expr"="values", "geneset"="ind")
-  mean_cors <- stack(mean_cors) %>% rename("mean_cor"="values", "geneset"="ind")
+  # DELETE_mean_cor
+  # mean_cors <- stack(mean_cors) %>% rename("mean_cor"="values", "geneset"="ind")
 
   geom_mean_cor.real.df <- stack(geom_mean_cor.real) %>% rename("GOI_cor.geneset"="values", "geneset"="ind")
   geom_mean_cor.random.df <- stack(geom_mean_cor.random) %>% rename("GOI_cor.background"="values", "geneset"="ind")
@@ -179,8 +191,10 @@ get_stats <- function(geneset_list,
               "low_power.p_value_df"= low_power.p_value_df,
               "all_RMSEs.real"=all_RMSEs.real,
               "all_RMSEs.random"=all_RMSEs.random,
-              "intercepts"=intercepts,
-              "mean_cor"=mean_cors,
+              # DELETE_intercepts
+              # "intercepts"=intercepts,
+              # DELETE_mean_cor
+              # "mean_cor"=mean_cors,
               "geom_mean_cor.df"=geom_mean_cor.df,
               "geom_mean_expr.df"=geom_mean_expr.df
   ))
@@ -324,14 +338,19 @@ enough_power <- function(samplesize, my_set_size, nsims) {
 #' @keywords Internal
 #'
 get_neg_log10 <- function(p_value_list) {
+
+  p_value_vec <- as.vector(unlist(p_value_list))
+
   # if the gene set is too small to rescale
   if (length(p_value_list)<2) {
     return(p_value_list)
   } else {
     # if there is a p=0, rescale the p value list to [min!=0,max]
     # else, keep as is
-    pvalues_for_neglog <- if (min(p_value_list)==0) scales::rescale(
-      p_value_list, to=c(sort(p_value_list, FALSE)[2], max(p_value_list))) else p_value_list
+    pvalues_for_neglog <- if (min(!is.na(p_value_vec))==0)
+      scales::rescale(p_value_vec,
+                      to=c(sort(p_value_vec, FALSE)[2], max(!is.na(p_value_vec))))
+    else p_value_vec
 
   }
 
@@ -537,7 +556,7 @@ compute_all_RMSEs <- function(GOI,
 #' @examples
 #' \dontrun{
 #' expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
-#' res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
+#' res <- get_stats(geneset_collection=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
 #' # show GeneCOCOA ggplot in "Plots" window
 #' plot_volcano(res)
 #'
@@ -554,40 +573,162 @@ plot_volcano <- function (mystats, sig_label_cutoff = 2, sig_col_cutoff =0.01, s
                   by = "geneset")
   new_df <- merge(new_df, mystats$geom_mean_expr.df, by = "geneset")
   new_df$label <- NA
-  new_df$label[new_df$neglog10.adj >= sig_label_cutoff] <- sapply(new_df$geneset[new_df$neglog10.adj >=
-                                                                                   sig_label_cutoff], function(x) stringr::str_wrap(stringr::str_replace_all(x,
-                                                                                                                                                             "_", " "), width = 10))
+  new_df$label[new_df$neglog10.adj >= sig_label_cutoff] <- sapply(new_df$geneset[new_df$neglog10.adj >= sig_label_cutoff],
+                                                                  function(x) stringr::str_wrap(stringr::str_replace_all(x,"_", " "), width = 10))
   new_df$col <- "grey"
   new_df$col[new_df$p.adj < sig_col_cutoff] <- sig_colour
   new_df$alpha <- 0.5
-  # new_df$alpha[new_df$p.adj < sig_label_cutoff] <- 1
-  # new_df$alpha <- scales::rescale(new_df$geom_mean_expr, to = c(0,
-  #     0.75))
-  new_df$size <- scales::rescale(new_df$geom_mean_expr, to = c(5,
-                                                               20))
+  new_df$size <- scales::rescale(new_df$geom_mean_expr, to = c(5,20))
+
   if (remove_outliers) {
-    new_df = new_df[!new_df$logFC %in% boxplot_stats(new_df$logFC)$out,
-    ]
-    new_df = new_df[!new_df$neglog10.adj %in% boxplot_stats(new_df$neglog10.adj)$out,
-    ]
+    new_df = new_df[!new_df$logFC %in% boxplot_stats(new_df$logFC)$out,]
+    new_df = new_df[!new_df$neglog10.adj %in% boxplot_stats(new_df$neglog10.adj)$out,]
   }
+
   nudge_y_centre = diff(range(new_df$neglog10.adj))/2
   nudge_y = diff(range(new_df$neglog10.adj))/15
   nudge_x = diff(range(new_df$logFC))/15
+
   my_plot <- ggplot(new_df, aes(x = logFC, y = neglog10.adj,
-                                label = label)) + geom_point(alpha = new_df$alpha, col = new_df$col,
-                                                             size = new_df$size) + geom_text_repel(aes(x = logFC,
-                                                                                                       y = neglog10.adj, label = label), size = 3, col = "black",
-                                                                                                   segment.color = sig_colour, segment.alpha = 0.4, position = position_nudge_center(direction = "split"),
-                                                                                                   hjust = "outward", vjust = "outward") + theme_minimal(base_size = 14) +
-    scale_y_continuous("-log10(p.adj)") + scale_x_continuous("log2(diffcoexp)",
-                                                             limits = c(1.25 * (-max(abs(new_df$logFC))), 1.25 * max(abs(new_df$logFC))))
+                                label = label)) +
+  geom_point(alpha = new_df$alpha, col = new_df$col,size = new_df$size) +
+  geom_text_repel(aes(x = logFC,y = neglog10.adj, label = label),
+                  size = 3, col = "black",
+                  segment.color = sig_colour, segment.alpha = 0.4,
+                  position = position_nudge_center(direction = "split"),
+                  hjust = "outward", vjust = "outward") +
+    # theme_minimal(base_size = 14) +
+    theme_bw(base_size = 16) +
+      theme(axis.text = element_text(colour = 'black'),
+            axis.line = element_line(),
+            panel.border = element_blank(),
+            axis.ticks = element_line(colour = 'black'),
+            strip.background = element_rect(colour = NA)) +
+    scale_y_continuous(bquote(-log[10](P[adj]))) + # DELETE scale_y_continuous("-log10(p.adj)") +
+    scale_x_continuous("impact",
+                       limits = c(1.25 * (-max(abs(new_df$logFC))), 1.25 * max(abs(new_df$logFC))))
+
   if (nchar(filepath) > 0) {
     ggsave(filename = filepath, plot = my_plot, dpi = 300, height=10, width=10, units="in")
   }
   return(my_plot)
 }
 
+
+#' Comparative visualisation of the GeneCOCOA results for a GOI in two different conditions.
+#' Produces a ggplot divering bar plot with x=-log10(p.adj) and y= top significant terms in chosen condition
+#'
+#' @param control_res Output of \code{\link{get_stats}} ("control" condition, left side of the plot).
+#' @param treatment_res Output of \code{\link{get_stats}} ("treatment" condition, right side of the plot).
+#' @param include_low_power Should gene sets which (for combinatorial reasons) could only be bootrstrapped <1000 times be included?
+#' @param control_label How should the "control" group be labelled?
+#' @param treatment_label How should the "treatment" group be labelled?
+#' @param topN How many terms should be displayed? The terms are ordered by significance and only the top n terms plotted comparatively.
+#' @param control_col Which colour should the "control" group bars be plotted in?
+#' @param treatment_col Which colour should the "treatment" group bars be plotted in?
+#' @param sort_by Should the bars be sorted by significance in the "treatment" or "control" group? (Default sort_by="treatment")
+#' @param filepath  Path + name of png to save If not provided, only the ggplot will be returned by this function.
+#'
+#' @return Returns a ggplot which can be stored in a variable and modified. If an absolute file name (path + file name) is provided, the ggplot with additionally be saved to a png.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#'
+#' # load complete Familial Hypercholesteroleamia data set
+#' FH <- as.data.frame(get_dataset_expression("GSE6054"))
+#' FH_disease <- FH %>% select(contains("FH"))
+#' disease_input <- get_expr_info(expr=FH_disease, GOI="LDLR")
+#' disease_res <- get_stats(geneset_list=hallmark_sets,
+#'                          GOI="LDLR",
+#'                          GOI_expr=disease_input$GOI_expr,
+#'                          expr_df=disease_input$expr_df,
+#'                          samplesize=2, nsims=1000)
+#'
+#'
+#' FH_control <- FH %>% select(contains("Control"))
+#' control_input <- get_expr_info(expr=FH_control, GOI="LDLR")
+#' control_res <- get_stats(geneset_list=hallmark_sets,
+#'                          GOI="LDLR",
+#'                          GOI_expr=control_input$GOI_expr,
+#'                          expr_df=control_input$expr_df,
+#'                          samplesize=2, nsims=1000)
+#'
+#'
+#' p <- plot_control_vs_treatment(control_res, treatment_res,
+#'                                control_label="control", treatment_label="FH",
+#'                                topN=5, sort_by="treament",
+#'                                filepath="/path/to/my/LDLR.FH.diverging_bars.png")
+#' p
+#'}
+plot_control_vs_treatment <- function(
+  control_res, treatment_res, include_low_power=TRUE,
+  control_label="control", treatment_label="treatment",
+  control_col="#00000000", treatment_col="brown4",
+  sort_by="treatment", topN=10,
+  filepath="") {
+
+  if (include_low_power) {
+    control <- rbind(control_res$p_value_df, control_res$low_power.p_value_df)
+    control$geneset <- gsub("_\\(\\d+)$", "", control$geneset)
+
+    treatment <- rbind(treatment_res$p_value_df, treatment_res$low_power.p_value_df)
+    treatment$geneset <- gsub("_\\(\\d+)$", "", treatment$geneset)
+
+  }  else {
+    control <- control_res$p_value_df
+    treatment <- treatment_res$p_value_df
+  }
+
+
+  control$condition <- rep(control_label, nrow(control))
+  control$neglog10.adj <- (-1)*control$neglog10.adj
+  control <- control %>% arrange(p.adj)
+  control$rank <- rownames(control)
+
+  treatment$condition <- rep(treatment_label, nrow(treatment))
+  treatment <- treatment %>% arrange(p.adj)
+  treatment$rank <- rownames(treatment)
+
+
+
+  if (sort_by=="control") {
+    control$geneset <- factor(control$geneset, levels=control$geneset)
+    treatment <- treatment[match(control$geneset, treatment$geneset),]
+    treatment$geneset <- factor(treatment$geneset, levels=control$geneset)
+  } else {
+    treatment$geneset <- factor(treatment$geneset, levels=treatment$geneset)
+    control <- control[match(treatment$geneset, control$geneset),]
+    control$geneset <- factor(control$geneset, levels=treatment$geneset)
+  }
+
+  dat <- rbind(control[c(1:topN),], treatment[c(1:topN),])
+  dat$geneset <- sapply(dat$geneset,  function(x) stringr::str_wrap(stringr::str_replace_all(x, "_", " "),width = 30))
+
+  cols=c(control_col, treatment_col)
+  cols <- setNames(cols, c(control_label, treatment_label))
+
+  my_plot <- ggplot(dat, aes(y=fct_inorder(geneset), x=neglog10.adj, fill=condition)) +
+    geom_bar(stat="identity", position="identity", colour="black", width=0.75) +
+    theme_bw() +
+    theme(axis.text = element_text(colour = 'black', size=16),
+          axis.title.x=element_text(size=16),
+          legend.title=element_text(size=16),
+          legend.text=element_text(size=16),
+          legend.position = "top",
+          axis.line = element_line(),
+          panel.border = element_blank(),
+          axis.ticks = element_line(colour = 'black'),
+          strip.background = element_rect(colour = NA)) +
+    scale_fill_manual(values=cols) +
+    xlab(bquote(-log[10](P[adj]))) +
+    scale_y_discrete("", limits=rev)
+
+  if (nchar(filepath) > 0) {
+    ggsave(filename = filepath, plot = my_plot, height=5, width=10, units="in")
+  }
+  return(my_plot)
+}
 
 
 
@@ -607,7 +748,7 @@ plot_volcano <- function (mystats, sig_label_cutoff = 2, sig_col_cutoff =0.01, s
 #' #' # let CAD_disease: data frame holding expression data in coronary artery disease with rows=genes, columns=samples
 #'
 #' expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
-#' res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
+#' res <- get_stats(geneset_collection=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
 #' gene_comb_ranking <- get_best_predictors(mystats=res, GOI="PDGFD", expr=CAD_disease, output="df")
 #' }
 get_best_predictors <- function(mystats, GOI, expr, output = FALSE) {
@@ -662,29 +803,6 @@ get_best_predictors <- function(mystats, GOI, expr, output = FALSE) {
 
 
 
-#
-#' Function to plot multiple (long) p-value rankings. Obsolete.
-#'
-#'
-#' @keywords Internal
-#'
-plot_multiple_p_plots <- function(subdf) ggplot(subdf, aes(x=reorder(geneset, p), y=p, group=1,
-                                                           label=formatC(p, digits = 6)))+
-  scale_x_discrete(limits=rev, name="") +
-  scale_y_continuous(name ="p-value", limits=c(0,1.35)) +
-  geom_line() + geom_point() +
-  geom_text(size=6, hjust=-0.125, vjust=0.5) +
-  coord_flip() +
-  theme(
-    plot_title = element_text(size=21, hjust = 0.5),
-    axis.text = element_text(size = 18),
-    axis.title = element_text(size = 21),
-    legend.title =element_text(size = 18),
-    legend.text =  element_text(size = 18)
-
-  )
-
-
 #' Plots p-value ranking (x-axis=adjusted -log10(p), y= gene set names, ranked).
 #' This function works but \code{\link{plot_volcano}} is more informative.
 #' @param my_stats Output of \code{\link{get_stats}}
@@ -714,65 +832,6 @@ plot_basic_p_ranking <- function (my_stats, filepath)
 
 
 
-
-#' Returns a ggplot with x=-log10(p.adj), y=mean intercept of gene set.
-#' The intercept can be interpreted as "GOI expression if all genes in the gene set were not expressed".
-#' This function works but \code{\link{plot_volcano}} is more informative.
-#'
-#' @param mystats Output of \code{\link{get_stats}}.
-#' @param sig_label_cutoff
-#' @param sig_colour
-#' @param remove_outliers
-#' @param filepath  Path + name of png to save If not provided, only the ggplot will be returned by this function.
-#'
-#' @return Returns a ggplot which can be stored in a variable and modified. If an absolute file name (path + file name) is provided, the ggplot with additionally be saved to a png.
-#' @export
-#'
-#'
-plot_p_vs_intercept <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodgerblue4", remove_outliers=FALSE, filepath) {
-
-  new_df <- merge(mystats$p_value_df, mystats$intercepts, by="geneset")
-  new_df$label <- NA
-  new_df$label[new_df$p.adj<sig_label_cutoff] <- sapply(new_df$geneset[new_df$p.adj<sig_label_cutoff],  function(x) stringr::str_wrap(stringr::str_replace_all(x, "_", " "),width = 10))
-  new_df$col <- "grey"
-  new_df$col[new_df$p.adj<sig_label_cutoff] <- sig_colour
-  new_df$alpha <- 0.7
-  new_df$alpha[new_df$p.adj<sig_label_cutoff] <- 1
-
-
-  if (remove_outliers) {
-    new_df = new_df[!new_df$intercept %in% boxplot_stats(new_df$intercept)$out,]
-  }
-
-  nudge_y_centre=diff(range(new_df$intercept))/2
-  nudge_y=diff(range(new_df$intercept))/5
-
-
-  my_plot <- ggplot(new_df, aes(x=neglog10.adj, y=intercept, label=label)) +
-    geom_point(alpha=new_df$alpha, col=new_df$col) +
-    geom_text_repel(aes(x=neglog10.adj, y=intercept, label=label),
-                    col=sig_colour,
-                    min.segment.length = unit(0, 'lines'),
-                    segment.color=sig_colour,
-                    segment.alpha=0.5,
-                    nudge_y = ifelse(new_df$intercept >nudge_y_centre, nudge_y, -nudge_y)) +
-    theme_minimal(base_size=14) +
-    scale_y_continuous("Intercept of regression model predicting GOI expression") +
-    scale_x_continuous("Significane of coexpression with GOI [-log10(p.adj)]")
-
-  if (nchar(filepath)>0) {
-    ggsave(filename=filepath, plot=my_plot, dpi=300)
-  }
-
-  return(my_plot)
-
-  # how to interpret the intercept:
-  # the GOIs tpm equals the intercept value when none of the genes in the set are expressed
-
-}
-
-
-
 #' Returns a ggplot with x=-log10(p.adj), y=mean coexpression of the gene set with the GOI.
 #' This function works but \code{\link{plot_volcano}} is more informative.
 #'
@@ -788,13 +847,17 @@ plot_p_vs_intercept <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodg
 #'
 plot_p_vs_geom_mean_cor <- function(mystats, sig_label_cutoff=0.05, sig_colour="dodgerblue4", remove_outliers=FALSE, filepath) {
 
-  new_df <- merge(mystats$p_value_df, mystats$geom_mean_cor.df, by="geneset")
+  new_df <- merge(mystats$p_value_df, mystats$geom_mean_cor.df,
+                  by="geneset")
+  new_df <- merge(new_df, mystats$geom_mean_expr.df,
+                  by = "geneset")
   new_df$label <- NA
   new_df$label[new_df$p.adj<sig_label_cutoff] <- sapply(new_df$geneset[new_df$p.adj<sig_label_cutoff],  function(x) stringr::str_wrap(stringr::str_replace_all(x, "_", " "),width = 10))
   new_df$col <- "grey"
   new_df$col[new_df$p.adj<sig_label_cutoff] <- sig_colour
-  new_df$alpha <- 0.7
-  new_df$alpha[new_df$p.adj<sig_label_cutoff] <- 1
+  new_df$alpha <- 0.5
+  new_df$size <- scales::rescale(new_df$geom_mean_expr, to = c(5,20))
+
 
   if (remove_outliers) {
     new_df = new_df[!new_df$GOI_cor.geneset %in% boxplot_stats(new_df$GOI_cor.geneset)$out,]
@@ -803,8 +866,9 @@ plot_p_vs_geom_mean_cor <- function(mystats, sig_label_cutoff=0.05, sig_colour="
   nudge_y_centre=diff(range(new_df$GOI_cor.geneset))/2
   nudge_y=diff(range(new_df$GOI_cor.geneset))/5
 
-  my_plot <- ggplot(new_df, aes(x=neglog10.adj, y=GOI_cor.geneset, label=label)) +
-    geom_point(alpha=new_df$alpha, col=new_df$col) +
+  my_plot <- ggplot(new_df, aes(x=GOI_cor.geneset, y=neglog10.adj,
+                                label=label)) +
+    geom_point(alpha=new_df$alpha, col=new_df$col, size=10) +
     geom_text_repel(aes(x=neglog10.adj, y=GOI_cor.geneset, label=label),
                     col=sig_colour,
                     min.segment.length = unit(0, 'lines'),
@@ -814,6 +878,24 @@ plot_p_vs_geom_mean_cor <- function(mystats, sig_label_cutoff=0.05, sig_colour="
     theme_minimal(base_size=14) +
     scale_y_continuous("Mean coexpression with GOI") +
     scale_x_continuous("Significane of coexpression with GOI [-log10(p.adj)]")
+
+  # CHECK HOW TO ADD:
+    # geom_text_repel(aes(x = logFC,y = neglog10.adj, label = label),
+    #                 size = 3, col = "black",
+    #                 segment.color = sig_colour, segment.alpha = 0.4,
+    #                 position = position_nudge_center(direction = "split"),
+    #                 hjust = "outward", vjust = "outward") +
+    # theme_bw(base_size = 16) +
+    # theme(axis.text = element_text(colour = 'black'),
+    #       axis.line = element_line(),
+    #       panel.border = element_blank(),
+    #       axis.ticks = element_line(colour = 'black'),
+    #       strip.background = element_rect(colour = NA)) +
+    # scale_y_continuous(bquote(-log[10](P[adj]))) + # DELETE scale_y_continuous("-log10(p.adj)") +
+    # scale_x_continuous("impact",
+    #                    limits = c(1.25 * (-max(abs(new_df$logFC))), 1.25 * max(abs(new_df$logFC))))
+
+
 
   if (nchar(filepath)>0) {
     ggsave(filename=filepath, plot=my_plot, dpi=300)
@@ -837,10 +919,10 @@ plot_p_vs_geom_mean_cor <- function(mystats, sig_label_cutoff=0.05, sig_colour="
 #' \dontrun{
 #' # assign gene set collection to variable and pass to get_stats
 #' all_hallmark_gs <- get_msigdb_genesets("HALLMARK")
-#' res <- get_stats(geneset_list=all_hallmark_gs, GOI="PDGFD",  ...)
+#' res <- get_stats(geneset_collection=all_hallmark_gs, GOI="PDGFD",  ...)
 #'
 #' # call directly in get_stats()
-#' res <- get_stats(geneset_list=get_msigdb_genesets("HALLMARK"), ...)
+#' res <- get_stats(geneset_collection=get_msigdb_genesets("HALLMARK"), ...)
 #' }
 get_msigdb_genesets <- function(genesets="", remove_prefix=TRUE) {
   if (genesets=="HALLMARK") {

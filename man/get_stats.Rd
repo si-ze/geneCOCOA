@@ -5,16 +5,17 @@
 \title{Main function of Gene-COCOA: performs statistical analysis.}
 \usage{
 get_stats(
-  geneset_list,
+  geneset_collection,
   GOI,
   GOI_expr,
   expr_df,
   samplesize = ncol((expr_df)/10),
-  nsims = 1000
+  nsims = 1000,
+  verbose = TRUE
 )
 }
 \arguments{
-\item{geneset_list}{A list of lists. Each list holds gene symbols of a specific gene set. Can be generated with \code{\link{get_msigdb_genesets}}}
+\item{geneset_collection}{A list of lists. Each list holds gene symbols of a specific gene set. Can be generated with \code{\link{get_msigdb_genesets}}}
 
 \item{GOI}{A string specifying the GOI gene symbol.}
 
@@ -37,6 +38,6 @@ Main function of Gene-COCOA: performs statistical analysis.
 # let CAD_disease: data frame holding expression data in coronary artery disease with rows=genes, columns=samples
 
 expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
-res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
+res <- get_stats(geneset_collection=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
 }
 }

@@ -16,7 +16,9 @@ Imports:
   psych,
   stringr,
   purrr,
+  forcats,
   msigdbr,
+  gemma.R,
   ggplot2,
   ggpp,
   ggrepel

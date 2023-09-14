@@ -28,7 +28,7 @@ Both, samples from real gene sets and from random combinations are stored and co
 #' # let CAD_disease: data frame holding expression data in coronary artery disease with rows=genes, columns=samples
 
 expr_info <- get_expr_info(expr=CAD_disease, GOI="PDGFD")
-res <- get_stats(geneset_list=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
+res <- get_stats(geneset_collection=get_msigigdb_genesets("HALLMARK"), GOI="PDGFD", GOI_expr=expr_info$GOI_expr, expr_df=expr_info$expr_df)
 gene_comb_ranking <- get_best_predictors(mystats=res, GOI="PDGFD", expr=CAD_disease, output="df")
 }
 }

@@ -21,9 +21,9 @@ Return a collection of curated gene sets from the MSigDB.
 \dontrun{
 # assign gene set collection to variable and pass to get_stats
 all_hallmark_gs <- get_msigdb_genesets("HALLMARK")
-res <- get_stats(geneset_list=all_hallmark_gs, GOI="PDGFD",  ...)
+res <- get_stats(geneset_collection=all_hallmark_gs, GOI="PDGFD",  ...)
 
 # call directly in get_stats()
-res <- get_stats(geneset_list=get_msigdb_genesets("HALLMARK"), ...)
+res <- get_stats(geneset_collection=get_msigdb_genesets("HALLMARK"), ...)
 }
 }
