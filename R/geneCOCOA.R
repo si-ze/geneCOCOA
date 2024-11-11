@@ -329,7 +329,6 @@ enough_power <- function(samplesize, my_set_size, nsims) {
 }
 
 
-
 #' Returns -log10 of given p-value list
 #'
 #' @param p_value_list
@@ -974,6 +973,218 @@ get_msigdb_genesets <- function(genesets="", remove_prefix=TRUE) {
   return(gs.symbol_lists)
 
 }
+
+
+
+
+
+#' Returns a ggplot with x=-log10(p.adj), y=mean coexpression of the gene set with the GOI.
+#' This function works but \code{\link{plot_volcano}} is more informative.
+#'
+#' @param treatment_df Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
+#' @param control_df Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
+#' @param GOI A string specifying the GOI gene symbol.
+#' @param geneset_collection A list of lists. Each list holds gene symbols of a specific gene set. Can be generated with \code{\link{get_msigdb_genesets}}
+#' @param output_dir  If the Laplace distribution fitting results should not only be returned as stats but also plotted, provide the output path for the plots. Default: working directory.
+#' @param plot_ECDF  Should the ECDF of the Laplace fitting be plotted? Default: true.
+#' @param plot_histo  Should the histogram of the Laplace fitting be plotted? Default: true.
+#' @param histo_breaks How many breaks should the histogram have? Default: 100.
+#' @return Returns a named list with "location" (the location estimate / mean of the fitted Laplace distribution), "scale" (the scale / standard deviation of the fitted Laplace distribution) and "ks.test" (the result of the Kolmogorov Smirnov test).
+#' @export
+estimate_laplace_parameters <- function(treatment_df=data.frame(), control_df=data.frame(),
+                                        GOI, geneset_collection,
+                                        output_dir=getwd(),
+                                        plot_ECDF=TRUE,
+                                        plot_histo=TRUE,
+                                        histo_breaks=100) {
+  # randomise the data frames
+  disease_rownames <- rownames(treatment_df)
+  treatment_df <- as.data.frame(lapply(treatment_df, sample))
+  rownames(treatment_df) <- disease_rownames
+  control_rownames <- rownames(control_df)
+  control_df <- as.data.frame(lapply(control_df, sample))
+  rownames(control_df) <- control_rownames
+
+
+  expr_info.disease <- get_expr_info(expr=treatment_df, GOI=GOI)
+  res_disease <- get_stats(geneset_collection=geneset_collection, GOI=GOI, GOI_expr=expr_info.disease$GOI_expr, expr_df=expr_info.disease$expr_df, samplesize=2, nsims=1000)
+
+  expr_info.control <- get_expr_info(expr=control_df, GOI=GOI)
+  res_control <- get_stats(geneset_collection=geneset_collection, GOI=GOI, GOI_expr=expr_info.control$GOI_expr, expr_df=expr_info.control$expr_df, samplesize=2, nsims=1000)
+
+
+  disease <- rbind(as.data.frame(res_disease$p_value_df), as.data.frame(res_disease$low_power.p_value_df))
+  control <- rbind(as.data.frame(res_control$p_value_df), as.data.frame(res_control$low_power.p_value_df))
+
+  # remove low power suffix (number of samplings in brackets)
+  disease$geneset <- gsub("_\\(\\d+)$", "", disease$geneset)
+  control$geneset <- gsub("_\\(\\d+)$", "", control$geneset)
+
+
+  diff_df <- merge(control[,c("geneset", "p", "p.adj")], disease[,c("geneset", "p", "p.adj")], by="geneset") %>% na.omit()
+  names(diff_df) <- c("geneset", "p_control", "p_adj_control", "p_disease", "p_adj_disease")
+  diff_df$p_ratio <- (diff_df$p_disease / diff_df$p_control) # if small, then "more significant" in disease. If large, "more significant" in control.
+  diff_df$log10_p_ratio <- log10(diff_df$p_ratio) # if negative, "more significant" in disease. If positive, "more significant" in control.
+  diff_df$neglog10_p_ratio <- (-1)*diff_df$log10_p_ratio # if positive, "more significant" in disease. If negative, "more significant" in control.
+
+
+
+  laplace_fit <- fitdist(diff_df$neglog10_p_ratio, "laplace",
+                         start = list(location = mean(diff_df$neglog10_p_ratio),
+                                      scale = sd(diff_df$neglog10_p_ratio)))
+  location_est <- laplace_fit$estimate["location"]
+  scale_est <- laplace_fit$estimate["scale"]
+
+
+  ks_test <- ks.test(rlaplace(n=500, location=laplace_fit$estimate["location"], scale=laplace_fit$estimate["scale"]),
+                     rlaplace(n=500, location=0, scale=scale_est))
+  ks_test_p <- as.character(as.numeric(ks_test$p.value))
+
+
+
+
+  x_range <- range(c(rlaplace(500, location=0, scale=1),
+                     rlaplace(500, location=laplace_fit$estimate["location"],
+                              scale=laplace_fit$estimate["scale"])))
+
+  y_range <- range(c(ecdf(rlaplace(n=500, location=0, scale=1))(x_range),
+                     ecdf(rlaplace(n=500, location=laplace_fit$estimate["location"],
+                                   scale=laplace_fit$estimate["scale"]))(x_range)))
+  # Position legend based on data ranges
+  legend_x <- min(x_range) + (0.05*diff(x_range)) # Slight offset from the left
+  legend_y <- max(y_range) - (0.05*diff(y_range)) # Slight offset from the top
+
+  if (plot_ECDF) {
+    # Empirical cumulative distribution function of general and fitted Laplace distribution
+    png(paste0(output_dir, "/Laplace_vs_custom.ECDF.png"), width=6, height=5, units="in", res=300)
+    plot(ecdf(rlaplace(n=500, location=0, scale=1)), do.points=FALSE, lwd=2, xlim=c(-11, 11), col="grey60",
+         main="")
+    plot(ecdf(rlaplace(n=500, location=laplace_fit$estimate["location"], scale=laplace_fit$estimate["scale"])),
+         add=TRUE, do.points=FALSE, lwd=2, col="darkred")
+    # legend(-10.5, 0.9, legend=c("Laplace(m=0, sd=1)", "Laplace(data)"),
+    #        col=c("grey60", "darkred"), lty=1, cex=0.8)
+    legend(legend_x, legend_y, legend=c("Laplace(m=0, sd=1)", "Laplace(data)"),
+           col=c("grey60", "darkred"), lty=1, cex=0.8, xjust=0, yjust=1)
+    dev.off()
+  }
+
+
+  if (plot_histo) {
+    png(paste0(output_dir, "/Laplace_vs_custom.histo.png", width=5, height=3, units="in", res=300))
+    # calculate limits for legend and p-value annotation placements
+    xlim <- range(diff_df$neglog10_p_ratio, na.rm = TRUE)
+    ylim <- c(0, max(hist(diff_df$neglog10_p_ratio, breaks = histo_breaks, plot = FALSE)$density, na.rm = TRUE))
+    # plot
+    hist(diff_df$neglog10_p_ratio, prob = TRUE, main = "",
+         xlab = bquote(-log[10](P[disease] / P[control])), col = "lightgrey", breaks = histo_breaks)
+    curve(dlaplace(x, location = location_est, scale = scale_est), col = "darkorange2", lwd = 2, add = TRUE)
+    curve(dlaplace(x, location = 0, scale = 1), col = "darkred", lwd = 2, add = TRUE)
+    legend(
+      x = xlim[1] + 0.05 * diff(xlim), # Slight offset from the left edge
+      y = ylim[2] - 0.05 * diff(ylim), # Slight offset from the top edge
+      legend = c("Laplace(data)", "Laplace(m=0, sd=1)"),
+      col = c("darkorange2", "darkred"), lty = 1, cex = 0.8
+    )
+    text(
+      x = xlim[2] - 0.05 * diff(xlim), # Slight offset from the right edge
+      y = ylim[2] - 0.05 * diff(ylim), # Slight offset from the top edge
+      labels = paste("P-value:", ks_test_p), # P-value text
+      col = "black", cex = 0.8, adj = c(1, 1) # adj = c(1, 1) for upper right alignment
+    )
+    dev.off()
+  }
+
+
+  return ( list(
+    "location"=location_est,
+    "scale"=scale_est,
+    "ks.test"=ks_test
+  ))
+
+} # END FUNCTION estimate_laplace_parameters
+
+
+
+#' Differential analysis of two given GeneCOCOA results for conditions treatment and control. Returns a dataframe with "neglog10_p_ratio" indicating direction & strength of change in association between a gene set and the GOI (>0: more strongly associated in treatment, <0: more strongly associated in control), and "differential_p" the corresponding significance of the change in association.
+#'
+#' @param control_res Output of \code{\link{get_stats}} ("control" condition, left side of the plot).
+#' @param treatment_res Output of \code{\link{get_stats}} ("treatment" condition, right side of the plot).
+#' @param GOI A string specifying the GOI gene symbol.
+#' @param geneset_collection A list of lists. Each list holds gene symbols of a specific gene set. Can be generated with \code{\link{get_msigdb_genesets}}
+#' @param include_low_power Should gene sets which (for combinatorial reasons) could only be bootrstrapped <1000 times be included?
+#' @param laplace_parameters Which Laplace distribution should be fitted to the data in order to derive p-values for the differential association values? Options: "Default": use precomputed Laplace-values (location=0.0076, scale=1.6614), "Laplace": location=0, scale=1, "Estimate": estimate parameters from given empirical data - cave: this will take longer than the other parameters!
+#' @param treatment_df Only needed for laplace_parameters="Estimate". Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
+#' @param control_df Only needed for laplace_parameters="Estimate". Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
+#' @return Returns differential GeneCOCOA results: a data frame with with columns "geneset", "p_control", "p_adj_control", "p_disease". "p_adj_disease", "p_ratio", "log10_p_ratio", "neglog10_p_ratio", "differential_p"
+#' @export
+#'
+#'
+#'
+#'
+get_differential_GeneCOCOA_results <- function(treatment_res, control_res,
+                                               GOI,
+                                               geneset_collection,
+                                               include_low_power=TRUE,
+                                               laplace_parameters="Default", # options: "Default", "Laplace", "Estimate"
+                                               treatment_df=data.frame(), # only needed for laplace_parameters="Estimate"
+                                               control_df=data.frame() # only needed for laplace_parameters="Estimate"
+)
+{
+  if (include_low_power) {
+    disease <- rbind(as.data.frame(treatment_res$p_value_df), as.data.frame(treatment_res$low_power.p_value_df))
+    control <- rbind(as.data.frame(control_res$p_value_df), as.data.frame(control_res$low_power.p_value_df))
+
+    # remove low power suffix (number of samplings in brackets)
+    disease$geneset <- gsub("_\\(\\d+)$", "", disease$geneset)
+    control$geneset <- gsub("_\\(\\d+)$", "", control$geneset)
+
+  } else {
+    disease <- as.data.frame(treatment_res$p_value_df)
+    control <- as.data.frame(control_res$p_value_df)
+  }
+
+
+
+  control <- control[match(disease$geneset, control$geneset),]
+  disease$geneset <- factor(disease$geneset, levels=disease$geneset)
+  control$geneset <- factor(control$geneset, levels=disease$geneset)
+
+  diff_df <- merge(control[,c("geneset", "p", "p.adj")], disease[,c("geneset", "p", "p.adj")], by="geneset") %>% na.omit()
+  names(diff_df) <- c("geneset", "p_control", "p_adj_control", "p_disease", "p_adj_disease")
+  diff_df$p_ratio <- (diff_df$p_disease / diff_df$p_control) # if small (0-1), then "more significant" in disease. If large (several 1000), "more significant" in control.
+  diff_df$log10_p_ratio <- log10(diff_df$p_ratio) # if negative, "more significant" in disease. If positive, "more significant" in control.
+  diff_df$neglog10_p_ratio <- (-1)*diff_df$log10_p_ratio # if positive, "more significant" in disease. If negative, "more significant" in control.
+
+
+
+
+  if (laplace_paramters=="Default") {
+    location_est <- 0.007595472
+    scale_est <-   1.661423
+  } else if (laplace_parameters=="Laplace") {
+    location_est <- 0
+    scale_est <-   1
+  } else if (laplace_parameters=="Estimate") {
+    # run function
+
+
+    # randomise data frames
+    # run gene COCOA for
+
+
+  } else {
+    message("Please choose between values 'Default', 'Laplace', or 'Estimate'.")
+    message("Data frame will be returned without p-values.")
+  }
+
+
+  diff_df$differential_p <- 2*(plaplace(abs(diff_df$neglog10_p_ratio), location = location_est, scale = scale_est, lower.tail = FALSE))
+
+  return(diff_df)
+}
+
+
+
 
 
 
