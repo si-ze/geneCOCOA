@@ -1,0 +1,37 @@
+myPaths <- c("C:/Users/szehr/rlibrary", .libPaths()[2], .libPaths()[1])
+.libPaths(myPaths)
+
+
+
+# in console: ========================
+library(roxygen2)
+library(devtools)
+
+rtools_path <- "C:\\Users\\szehr\\Rtools\\usr\\bin"
+Sys.setenv(PATH = paste0(Sys.getenv("PATH"), ";", rtools_path))
+portgit_path <- "C:\\Users\\szehr\\PortableGit\\bin"
+Sys.setenv(PATH = paste0(Sys.getenv("PATH"), ";", portgit_path))
+
+Sys.setenv(R_RTOOLS42_HOME="C:\\Users\\szehr\\Rtools\\usr\\bin")
+
+
+check()
+install()
+
+# in terminal: ========================
+# git init
+# git remote add origin <link to repository + .git, e.g.  https://github.com/si-ze/geneCOCOA.git>
+#   git branch -M main
+# git add .
+# git commit -m "bug fixes"
+# git push -u origin main
+#
+
+# updates::::::::::::::
+# git add man
+# git add R
+# git add geneCOCOA.Rproj
+# git add DESCRIPTION
+# git add NAMESPACE
+# git commit -m "fixed typo"
+# git push -u origin main
