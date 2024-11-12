@@ -1215,7 +1215,7 @@ plot_differential_GeneCOCOA_results <- function(diff_df, sig_label_cutoff=0.05, 
 {
   
 
-  plot_prefix <- png(paste0(output_dir, "/", condition, ".", GOI)
+  plot_prefix <- png(paste0(output_dir, "/", condition, ".", GOI))
   
   plot_df <- diff_df
   plot_df$mean_p_adj <- rowMeans(plot_df[,c("p_adj_control", "p_adj_disease")])
