@@ -1122,8 +1122,8 @@ estimate_laplace_parameters <- function(treatment_df=data.frame(), control_df=da
 #'
 #'
 get_differential_results <- function(treatment_res, control_res,
-                                               GOI,
-                                               geneset_collection,
+                                               GOI="",
+                                               geneset_collection="",
                                                include_low_power=TRUE,
                                                laplace_parameters="Default", # options: "Default", "Laplace", "Estimate"
                                                treatment_df=data.frame(), # only needed for laplace_parameters="Estimate"
@@ -1158,20 +1158,16 @@ get_differential_results <- function(treatment_res, control_res,
 
 
 
-  if (laplace_paramters=="Default") {
+  if (laplace_parameters=="Default") {
     location_est <- 0.007595472
     scale_est <-   1.661423
   } else if (laplace_parameters=="Laplace") {
     location_est <- 0
     scale_est <-   1
   } else if (laplace_parameters=="Estimate") {
-    # run function
-
-
-    # randomise data frames
-    # run gene COCOA for
-
-
+    my_estimate <- estimate_laplace_parameters(treatment_df=treatment_df, control_df=control_df, GOI=GOI, geneset_collection=geneset_collection)
+    location_est <- as.numeric(my_estimate$location)
+    scale_est <- as.numeric(my_estimate$scale)
   } else {
     message("Please choose between values 'Default', 'Laplace', or 'Estimate'.")
     message("Data frame will be returned without p-values.")
