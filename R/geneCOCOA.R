@@ -1196,102 +1196,104 @@ get_differential_GeneCOCOA_results <- function(treatment_res, control_res,
 
 
 
-# #' Comparative visualisation of the GeneCOCOA results for a GOI in two different conditions.
-# #' Produces a ggplot divering bar plot with x=-log10(p.adj) and y= top significant terms in chosen condition
-# #'
+#' Comparative visualisation of the GeneCOCOA results for a GOI in two different conditions.
+#' Produces a ggplot divering bar plot with x=-log10(p.adj) and y= top significant terms in chosen condition
+#'
+#' @param diff_df Output of \code{\link{get_differential_GeneCOCOA_results}}
+#' @param sig_label_cutoff At which differential p-value should points be labelled? Default: 0.05
+#' @param output_dir  Output path for the plots. Default: working directory.
+#' @param GOI A string specifying the GOI gene symbol.
+#' @param condition A string specifying the treatment condition examined in contrast to control.
+#'
+#' @return Returns a list with two ggplots, a MA plot wand a volcano plot. Additionally saves them to files.
+#' @export
+#'
 
-# #' @param diff_df Output of \code{\link{get_differential_GeneCOCOA_results}}
-# #' @param sig_label_cutoff At which differential p-value should points be labelled? Default: 0.05
-# #' @param output_dir  Output path for the plots. Default: working directory.
-# #' @param GOI A string specifying the GOI gene symbol.
-# #' @param condition A string specifying the treatment condition examined in contrast to control.
-# #'
-# #' @return Returns a list with two ggplots, a MA plot wand a volcano plot. Additionally saves them to files.
-# #' @export
-# #'
-# plot_differential_GeneCOCOA_results <- function(diff_df, sig_label_cutoff=0.05, output_dir=getwd(),
-#                                                 GOI="GOI", condition="") {
-
-# plot_df <- diff_df
-# plot_prefix <- png(paste0(output_dir, "/", condition, ".", GOI)
-
-
-# plot_df$mean_p_adj <- rowMeans(plot_df[,c("p_adj_control", "p_adj_disease")])
-# plot_df$min_p_adj <- apply(plot_df[,c("p_adj_control", "p_adj_disease")], 1, FUN = min)
-# plot_df$label <- NA
-# plot_df$label[plot_df$differential_p < sig_label_cutoff] <- plot_df$geneset[plot_df$differential_p < sig_label_cutoff] %>% tolower()
-# plot_df$label <- gsub("dna_", "DNA_", plot_df$label)
-# plot_df$label <- gsub("rna_", "RNA_", plot_df$label)
-# plot_df$label <- gsub("ase_iii", "ase_III", plot_df$label)
-# plot_df$label <- gsub("ase_ii", "ase_II", plot_df$label)
-# plot_df$label <- gsub("ase_i", "ase_I", plot_df$label)
-# plot_df$label <- ifelse(is.na(plot_df$label), NA,
-#                         paste0(toupper(substr(plot_df$label, 1, 1)), substr(plot_df$label, 2, nchar(plot_df$label))))
-
-# plot_df$label <-
-#   sapply(plot_df$label, function(x) stringr::str_wrap(stringr::str_replace_all(x,"_", " "), width = 10))
-
-# plot_df <- plot_df %>% mutate(col = ifelse(differential_p >= sig_label_cutoff, "n.s.", ifelse(neglog10_p_ratio>0, "Disease", "Control")))
-# plot_df$col <- factor(plot_df$col, levels=c("n.s.", "Disease", "Control"))
-
-
-# MA_plot <- ggplot(plot_df, aes(y=(-1)*log10(min_p_adj), x=neglog10_p_ratio)) +
-#   geom_point(alpha=0.5, aes(col = col, size=(-1)*log10(differential_p))) +
-#   # scale_x_continuous(limits=c(0,4), oob=scales::squish) +
-#   theme_bw() +
-#   geom_text_repel(aes(label=label)) +
-#   scale_colour_manual("Association tendency",
-#                       labels=c("n.s.", "Disease", "Control"), values=c("grey", "firebrick", "dodgerblue4")) +
-#   labs(size=bquote(-log[10](P[differential]))) +
-#   scale_x_continuous(bquote("Association ratio [" ~ -log[10](P[disease]/P[control]) ~ "]")) +
-#   scale_y_continuous(bquote("Conditional significance [" ~ -log[10] ~ "(min(" ~ P[adj] ~ "))]")) +
-#   theme(axis.title = element_text(size=14),
-#         axis.text = element_text(size=12))
-# ggsave(paste0(plot_prefix, ".MA_plot.png"), plot=volcano_plot, width=80, height=50, units = "mm")
-# ggsave(paste0(plot_prefix, ".MA_plot.svg"), plot=volcano_plot, width=80, height=50, units = "mm", device=svglite::svglite)
-
-
-
-
-
-# plot_df$neglog10_diff_p <- (-1)*(log10(plot_df$differential_p))
-# nudge_y_centre = diff(range(plot_df$neglog10_diff_p))/2
-# nudge_y = diff(range(plot_df$neglog10_diff_p))/15
-# nudge_x = diff(range(plot_df$logFC))/15
-
-# # if (remove_outliers) {
-# #   plot_df = plot_df[!plot_df$logFC %in% boxplot_stats(plot_df$neglog10_p_ratio)$out,]
-# #   plot_df = plot_df[!plot_df$neglog10.adj %in% boxplot_stats(plot_df$neglog10.adj)$out,]
-# # }
-
-
-# volcano_plot <- ggplot(plot_df, aes(x = neglog10_p_ratio, y =(-1)*log10(differential_p),
-#                                     label = label)) +
-#   geom_point(alpha=0.5, size=2, aes(col = col)) +
-#   geom_text_repel(aes(x = neglog10_p_ratio,y = (-1)*log10(differential_p), label = label),
-#                   size = 5/.pt, col = "black",
-#                   segment.color = "black", segment.alpha = 0.4,
-#                   position = position_nudge_center(direction = "split"),
-#                   hjust = "outward", vjust = "outward",
-#                   lineheight=0.7) +
-#   scale_colour_manual("Association tendency",
-#                       labels=c("n.s.", "Disease", "Control"), values=c("grey", "firebrick", "dodgerblue4")) +
-#   theme_bw() +
-#   theme(text=element_text(size=7),
-#         axis.text = element_text(colour = 'black'),
-#         axis.line = element_line(),
-#         panel.border = element_blank(),
-#         axis.ticks = element_line(colour = 'black'),
-#         strip.background = element_rect(colour = NA)) +
-#   scale_y_continuous(bquote(-log[10](DifferentialP))) +
-#   scale_x_continuous(bquote(-log[10](P[disease]/P[control])))
-# ggsave(paste0(plot_prefix, ".volcano_plot.png"), plot=volcano_plot, width=80, height=50, units = "mm")
-# ggsave(paste0(plot_prefix, ".volcano_plot.svg"), plot=volcano_plot, width=80, height=50, units = "mm", device=svglite::svglite)
-
-# return(list("MA_plot"=MA_plot, "volcano_plot"=volcano_plot))
+plot_differential_GeneCOCOA_results <- function(diff_df, sig_label_cutoff=0.05, output_dir=getwd(),
+                                                GOI="GOI", condition="" # only needed for laplace_parameters="Estimate"
+)
+{
+  
+  plot_df <- diff_df
+  plot_prefix <- png(paste0(output_dir, "/", condition, ".", GOI)
+  
+  
+  plot_df$mean_p_adj <- rowMeans(plot_df[,c("p_adj_control", "p_adj_disease")])
+  plot_df$min_p_adj <- apply(plot_df[,c("p_adj_control", "p_adj_disease")], 1, FUN = min)
+  plot_df$label <- NA
+  plot_df$label[plot_df$differential_p < sig_label_cutoff] <- plot_df$geneset[plot_df$differential_p < sig_label_cutoff] %>% tolower()
+  plot_df$label <- gsub("dna_", "DNA_", plot_df$label)
+  plot_df$label <- gsub("rna_", "RNA_", plot_df$label)
+  plot_df$label <- gsub("ase_iii", "ase_III", plot_df$label)
+  plot_df$label <- gsub("ase_ii", "ase_II", plot_df$label)
+  plot_df$label <- gsub("ase_i", "ase_I", plot_df$label)
+  plot_df$label <- ifelse(is.na(plot_df$label), NA,
+                          paste0(toupper(substr(plot_df$label, 1, 1)), substr(plot_df$label, 2, nchar(plot_df$label))))
+  
+  plot_df$label <-
+    sapply(plot_df$label, function(x) stringr::str_wrap(stringr::str_replace_all(x,"_", " "), width = 10))
+  
+  plot_df <- plot_df %>% mutate(col = ifelse(differential_p >= sig_label_cutoff, "n.s.", ifelse(neglog10_p_ratio>0, "Disease", "Control")))
+  plot_df$col <- factor(plot_df$col, levels=c("n.s.", "Disease", "Control"))
+  
+  
+  MA_plot <- ggplot(plot_df, aes(y=(-1)*log10(min_p_adj), x=neglog10_p_ratio)) +
+    geom_point(alpha=0.5, aes(col = col, size=(-1)*log10(differential_p))) +
+    # scale_x_continuous(limits=c(0,4), oob=scales::squish) +
+    theme_bw() +
+    geom_text_repel(aes(label=label)) +
+    scale_colour_manual("Association tendency",
+                        labels=c("n.s.", "Disease", "Control"), values=c("grey", "firebrick", "dodgerblue4")) +
+    labs(size=bquote(-log[10](P[differential]))) +
+    scale_x_continuous(bquote("Association ratio [" ~ -log[10](P[disease]/P[control]) ~ "]")) +
+    scale_y_continuous(bquote("Conditional significance [" ~ -log[10] ~ "(min(" ~ P[adj] ~ "))]")) +
+    theme(axis.title = element_text(size=14),
+          axis.text = element_text(size=12))
+  ggsave(paste0(plot_prefix, ".MA_plot.png"), plot=volcano_plot, width=80, height=50, units = "mm")
+  ggsave(paste0(plot_prefix, ".MA_plot.svg"), plot=volcano_plot, width=80, height=50, units = "mm", device=svglite::svglite)
+  
+  
+  
+  
+  
+  plot_df$neglog10_diff_p <- (-1)*(log10(plot_df$differential_p))
+  nudge_y_centre = diff(range(plot_df$neglog10_diff_p))/2
+  nudge_y = diff(range(plot_df$neglog10_diff_p))/15
+  nudge_x = diff(range(plot_df$logFC))/15
+  
+  # if (remove_outliers) {
+  #   plot_df = plot_df[!plot_df$logFC %in% boxplot_stats(plot_df$neglog10_p_ratio)$out,]
+  #   plot_df = plot_df[!plot_df$neglog10.adj %in% boxplot_stats(plot_df$neglog10.adj)$out,]
+  # }
+  
+  
+  volcano_plot <- ggplot(plot_df, aes(x = neglog10_p_ratio, y =(-1)*log10(differential_p),
+                                      label = label)) +
+    geom_point(alpha=0.5, size=2, aes(col = col)) +
+    geom_text_repel(aes(x = neglog10_p_ratio,y = (-1)*log10(differential_p), label = label),
+                    size = 5/.pt, col = "black",
+                    segment.color = "black", segment.alpha = 0.4,
+                    position = position_nudge_center(direction = "split"),
+                    hjust = "outward", vjust = "outward",
+                    lineheight=0.7) +
+    scale_colour_manual("Association tendency",
+                        labels=c("n.s.", "Disease", "Control"), values=c("grey", "firebrick", "dodgerblue4")) +
+    theme_bw() +
+    theme(text=element_text(size=7),
+          axis.text = element_text(colour = 'black'),
+          axis.line = element_line(),
+          panel.border = element_blank(),
+          axis.ticks = element_line(colour = 'black'),
+          strip.background = element_rect(colour = NA)) +
+    scale_y_continuous(bquote(-log[10](DifferentialP))) +
+    scale_x_continuous(bquote(-log[10](P[disease]/P[control])))
+  ggsave(paste0(plot_prefix, ".volcano_plot.png"), plot=volcano_plot, width=80, height=50, units = "mm")
+  ggsave(paste0(plot_prefix, ".volcano_plot.svg"), plot=volcano_plot, width=80, height=50, units = "mm", device=svglite::svglite)
+  
+  return(list("MA_plot"=MA_plot, "volcano_plot"=volcano_plot))
 
 
-# }
+}
 
 
 
