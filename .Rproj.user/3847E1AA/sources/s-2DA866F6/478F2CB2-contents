@@ -18,6 +18,8 @@ Sys.setenv(R_RTOOLS42_HOME="C:\\Users\\szehr\\Rtools\\usr\\bin")
 check()
 install()
 
+devtools::document()
+
 
 # in terminal: ========================
 # git init

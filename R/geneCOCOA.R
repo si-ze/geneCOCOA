@@ -1253,7 +1253,7 @@ plot_differential_results <- function(diff_df, sig_label_cutoff=0.05, output_dir
           axis.line = element_line(),
           panel.border = element_blank(),
           axis.ticks = element_line(colour = 'black'),
-          strip.background = element_rect(colour = NA)) +
+          strip.background = element_rect(colour = NA))
   ggsave(paste0(plot_prefix, ".MA_plot.png"), plot=MA_plot, width=80, height=50, units = "mm")
   ggsave(paste0(plot_prefix, ".MA_plot.svg"), plot=MA_plot, width=80, height=50, units = "mm", device=svglite::svglite)
 
