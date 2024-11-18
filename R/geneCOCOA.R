@@ -1248,8 +1248,12 @@ plot_differential_results <- function(diff_df, sig_label_cutoff=0.05, output_dir
     labs(size=bquote(-log[10](P[differential]))) +
     scale_x_continuous(bquote("Association ratio [" ~ -log[10](P[disease]/P[control]) ~ "]")) +
     scale_y_continuous(bquote("Conditional significance [" ~ -log[10] ~ "(min(" ~ P[adj] ~ "))]")) +
-    theme(axis.title = element_text(size=14),
-          axis.text = element_text(size=12))
+    theme(text=element_text(size=7),
+          axis.text = element_text(colour = 'black'),
+          axis.line = element_line(),
+          panel.border = element_blank(),
+          axis.ticks = element_line(colour = 'black'),
+          strip.background = element_rect(colour = NA)) +
   ggsave(paste0(plot_prefix, ".MA_plot.png"), plot=MA_plot, width=80, height=50, units = "mm")
   ggsave(paste0(plot_prefix, ".MA_plot.svg"), plot=MA_plot, width=80, height=50, units = "mm", device=svglite::svglite)
 
