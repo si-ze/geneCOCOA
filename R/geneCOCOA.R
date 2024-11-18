@@ -914,7 +914,7 @@ plot_p_vs_geom_mean_cor <- function(mystats, sig_label_cutoff=0.05, sig_colour="
 #'
 #' @return A list of named lists. Each sublist is named by a gene set, and its contents are the symbols of all genes in this set as strings.
 #' @export
-#'
+#' @import msigdbr
 #' @examples
 #' \dontrun{
 #' # assign gene set collection to variable and pass to get_stats
@@ -1117,6 +1117,7 @@ estimate_laplace_parameters <- function(treatment_df=data.frame(), control_df=da
 #' @param treatment_df Only needed for laplace_parameters="Estimate". Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
 #' @param control_df Only needed for laplace_parameters="Estimate". Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
 #' @return Returns differential GeneCOCOA results: a data frame with with columns "geneset", "p_control", "p_adj_control", "p_disease". "p_adj_disease", "p_ratio", "log10_p_ratio", "neglog10_p_ratio", "differential_p"
+#' @import VGAM
 #' @export
 #'
 #'
@@ -1175,7 +1176,7 @@ get_differential_results <- function(treatment_res, control_res,
   }
 
 
-  diff_df$differential_p <- 2*(plaplace(abs(diff_df$neglog10_p_ratio), location = location_est, scale = scale_est, lower.tail = FALSE))
+  diff_df$differential_p <- 2*(VGAM::plaplace(abs(diff_df$neglog10_p_ratio), location = location_est, scale = scale_est, lower.tail = FALSE))
 
   return(diff_df)
 }
