@@ -1,0 +1,213 @@
+
+# library(devtools)
+# install_github("si-ze/geneCOCOA")
+library(dplyr)
+library(geneCOCOA)
+library(gemma.R)
+library(msigdbr)
+library(VGAM)
+library(stringr)
+library(ggplot2)
+library(ggrepel)
+library(ggpp)
+library(svglite)
+
+
+
+load("V:/Papers/In_Preparation/Gene-COCOA/Revision/Data/differential_plots/FH.LDLR.differential_plots.RData")
+# loads:
+# plot_df
+# MA_plot
+# volcano_plot
+
+
+
+
+
+ggsave("FH.LDLR.MA_plot.svg", plot=MA_plot, width=6, height=5, device=svg)
+
+volcano_plot <- volcano_plot + 
+  scale_y_continuous("Differential P") +
+  scale_x_continuous("log10(Pdisease/Pcontrol)") + 
+  theme( axis.text.y = element_text(lineheight = 0.6))
+ggsave("FH.LDLR.volcano_plot.svg", plot=volcano_plot, width=6, height=5, device=svglite::svglite)
+
+
+# --------------------------------------------------------------------
+# This script produces the data / plots: 
+
+
+setwd("V:/Papers/In_Preparation/Gene-COCOA/Revision/Data/differential_plots/")
+load("V:/Projects/Simonida/geneCOCOA/examples/FH/LDLR.res_and_plots.RData")
+
+
+
+
+
+# hallmark_sets <- get_msigdb_genesets("HALLMARK")
+# gobp <- get_msigdb_genesets("GOBP")
+# FH <- as.data.frame(get_dataset_expression("GSE6054"))
+# 
+# 
+# FH <- FH[nchar(FH$GeneSymbol)>0,]
+# FH$Probe = FH$GeneName = FH$NCBIid = NULL
+# FH$GeneSymbol <- sub("[|].*", "",FH$GeneSymbol)
+# FH <-  group_by(FH, GeneSymbol) %>%
+#   summarize_at(c(1:(ncol(FH)-1)), sum) %>% as.data.frame()
+# rownames(FH) = FH$GeneSymbol
+# 
+# 
+# FH_disease <- FH %>% select(contains("FH"))
+# FH_control <- FH %>% select(contains("Control"))
+# 
+# expr_info.LDLR.FH_disease <- get_expr_info(expr=FH_disease, GOI="LDLR")
+# res.LDLR.FH_disease <- get_stats(geneset_collection=hallmark_sets, GOI="LDLR", GOI_expr=expr_info.LDLR.FH_disease$GOI_expr, expr_df=expr_info.LDLR.FH_disease$expr_df, samplesize=2, nsims=1000)
+# 
+# expr_info.LDLR.FH_control <- get_expr_info(expr=FH_control, GOI="LDLR")
+# res.LDLR.FH_control <- get_stats(geneset_collection=hallmark_sets, GOI="LDLR", GOI_expr=expr_info.LDLR.FH_control$GOI_expr, expr_df=expr_info.LDLR.FH_control$expr_df, samplesize=2, nsims=1000)
+# 
+# 
+# 
+
+###########################################################
+###########################################################
+###########################################################
+###########################################################
+###########################################################
+###########################################################
+###########################################################
+
+
+
+
+
+
+# get results in FH disease condition
+# res.LDLR.FH_disease$low_power.p_value_df$p.adj <- p.adjust(res.LDLR.FH_disease$low_power.p_value_df$p)
+# res.LDLR.FH_disease$low_power.p_value_df$neglog10.adj <- get_neg_log10(res.LDLR.FH_disease$low_power.p_value_df$p.adj)
+disease <- rbind(as.data.frame(res.LDLR.FH_disease$p_value_df), as.data.frame(res.LDLR.FH_disease$low_power.p_value_df))
+disease$geneset <- gsub("_\\(\\d+)$", "", disease$geneset)
+# disease$condition <- rep("FH", nrow(disease))
+# disease$neglog <- (-1)*log10(disease$p.adj)
+# disease <- disease %>% arrange(p.adj)
+# disease$rank <- rownames(disease)
+
+
+# get results in FH control condition
+# res.LDLR.FH_control$low_power.p_value_df$p.adj <- p.adjust(res.LDLR.FH_control$low_power.p_value_df$p)
+# res.LDLR.FH_control$low_power.p_value_df$neglog10.adj <- get_neg_log10(res.LDLR.FH_control$low_power.p_value_df$p.adj)
+control <- rbind(as.data.frame(res.LDLR.FH_control$p_value_df), as.data.frame(res.LDLR.FH_control$low_power.p_value_df))
+control$geneset <- gsub("_\\(\\d+)$", "", control$geneset)
+control <- control[match(disease$geneset, control$geneset),]
+# control$condition <- rep("control", nrow(control))
+# control$neglog <- (-1)*(-log10(control$p.adj))
+# control <- control %>% arrange(p.adj)
+# control$rank <- rownames(control)
+
+disease$geneset <- factor(disease$geneset, levels=disease$geneset)
+control$geneset <- factor(control$geneset, levels=disease$geneset)
+
+
+
+
+
+diff_df <- merge(control[,c("geneset", "p", "p.adj")], disease[,c("geneset", "p", "p.adj")], by="geneset") %>% na.omit()
+names(diff_df) <- c("geneset", "p_control", "p_adj_control", "p_disease", "p_adj_disease")
+diff_df$p_ratio <- (diff_df$p_disease / diff_df$p_control) # if small (0-1), then "more significant" in disease. If large (several 1000), "more significant" in control.
+diff_df$log10_p_ratio <- log10(diff_df$p_ratio) # if negative, "more significant" in disease. If positive, "more significant" in control. 
+diff_df$neglog10_p_ratio <- (-1)*diff_df$log10_p_ratio # if positive, "more significant" in disease. If negative, "more significant" in control. 
+
+location_est <- 0.007595472 
+scale_est <-   1.661423 
+diff_df$differential_p <- 2*(plaplace(abs(diff_df$neglog10_p_ratio), location = location_est, scale = scale_est, lower.tail = FALSE))
+
+
+
+
+
+
+##################################
+# PLOT
+
+sig_label_cutoff <- 0.05
+
+plot_df <- diff_df
+plot_df$mean_p_adj <- rowMeans(plot_df[,c("p_adj_control", "p_adj_disease")])
+plot_df$min_p_adj <- apply(plot_df[,c("p_adj_control", "p_adj_disease")], 1, FUN = min)
+plot_df$label <- NA
+plot_df$label[plot_df$differential_p < sig_label_cutoff] <- plot_df$geneset[plot_df$differential_p < sig_label_cutoff] %>% tolower()
+plot_df$label <- gsub("dna_", "DNA_", plot_df$label)
+plot_df$label <- gsub("rna_", "RNA_", plot_df$label)
+plot_df$label <- gsub("ase_iii", "ase_III", plot_df$label)
+plot_df$label <- gsub("ase_ii", "ase_II", plot_df$label)
+plot_df$label <- gsub("ase_i", "ase_I", plot_df$label)
+plot_df$label <- ifelse(is.na(plot_df$label), NA,
+                        paste0(toupper(substr(plot_df$label, 1, 1)), substr(plot_df$label, 2, nchar(plot_df$label))))
+
+plot_df$label <- 
+  sapply(plot_df$label, function(x) stringr::str_wrap(stringr::str_replace_all(x,"_", " "), width = 10))
+
+plot_df <- plot_df %>% mutate(col = ifelse(differential_p >= sig_label_cutoff, "n.s.", ifelse(neglog10_p_ratio>0, "Disease", "Control")))
+plot_df$col <- factor(plot_df$col, levels=c("n.s.", "Disease", "Control"))
+
+
+MA_plot <- ggplot(plot_df, aes(y=(-1)*log10(min_p_adj), x=neglog10_p_ratio)) +
+  geom_point(alpha=0.5, aes(col = col, size=(-1)*log10(differential_p))) + 
+  # scale_x_continuous(limits=c(0,4), oob=scales::squish) +
+  theme_bw() +
+  geom_text_repel(aes(label=label)) + 
+  scale_colour_manual("Association tendency", 
+                      labels=c("n.s.", "Disease", "Control"), values=c("grey", "firebrick", "dodgerblue4")) +
+  labs(size=bquote(-log[10](P[differential]))) +
+  scale_x_continuous(bquote("Association ratio [" ~ -log[10](P[disease]/P[control]) ~ "]")) + 
+  scale_y_continuous(bquote("Conditional significance [" ~ -log[10] ~ "(min(" ~ P[adj] ~ "))]")) +
+  theme(axis.title = element_text(size=14), 
+        axis.text = element_text(size=12))
+ggsave("FH.LDLR.MA_plot.png", plot=MA_plot, width=6, height=5)
+ggsave("FH.LDLR.MA_plot.svg", plot=MA_plot, width=6, height=5, device=svg)
+
+
+
+
+
+
+
+plot_df$neglog10_diff_p <- (-1)*(log10(plot_df$differential_p))
+nudge_y_centre = diff(range(plot_df$neglog10_diff_p))/2
+nudge_y = diff(range(plot_df$neglog10_diff_p))/15
+nudge_x = diff(range(plot_df$logFC))/15
+
+# if (remove_outliers) {
+#   plot_df = plot_df[!plot_df$logFC %in% boxplot_stats(plot_df$neglog10_p_ratio)$out,]
+#   plot_df = plot_df[!plot_df$neglog10.adj %in% boxplot_stats(plot_df$neglog10.adj)$out,]
+# }
+
+
+volcano_plot <- ggplot(plot_df, aes(x = neglog10_p_ratio, y =(-1)*log10(differential_p),
+                                    label = label)) +
+  geom_point(alpha=0.5, size=2, aes(col = col)) + 
+  geom_text_repel(aes(x = neglog10_p_ratio,y = (-1)*log10(differential_p), label = label),
+                  size = 5/.pt, col = "black",
+                  segment.color = "black", segment.alpha = 0.4,
+                  position = position_nudge_center(direction = "split"),
+                  hjust = "outward", vjust = "outward", 
+                  lineheight=0.7) +
+  scale_colour_manual("Association tendency", 
+                      labels=c("n.s.", "Disease", "Control"), values=c("grey", "firebrick", "dodgerblue4")) +
+  theme_bw() +
+  theme(text=element_text(size=7),
+        axis.text = element_text(colour = 'black'),
+        axis.line = element_line(),
+        panel.border = element_blank(),
+        axis.ticks = element_line(colour = 'black'),
+        strip.background = element_rect(colour = NA)) +
+  scale_y_continuous(bquote(-log[10](DifferentialP))) +
+  scale_x_continuous(bquote(-log[10](P[disease]/P[control]))) 
+ggsave("FH.LDLR.volcano_plot.png", plot=volcano_plot, width=80, height=50, units = "mm")
+ggsave("FH.LDLR.volcano_plot.svg", plot=volcano_plot, width=80, height=50, units = "mm", device=svglite::svglite)
+
+
+
+# save(plot_df, MA_plot, volcano_plot, file="FH.LDLR.differential_plots.RData")
+
+

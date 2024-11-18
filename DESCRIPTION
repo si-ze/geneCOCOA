@@ -21,5 +21,6 @@ Imports:
   gemma.R,
   ggplot2,
   ggpp,
-  ggrepel
+  ggrepel, 
+  VGAM
 RoxygenNote: 7.2.3

@@ -7,8 +7,8 @@
 get_differential_results(
   treatment_res,
   control_res,
-  GOI,
-  geneset_collection,
+  GOI = "",
+  geneset_collection = "",
   include_low_power = TRUE,
   laplace_parameters = "Default",
   treatment_df = data.frame(),

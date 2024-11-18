@@ -1,26 +1,26 @@
 {
-    "id": "478F2CB2",
-    "path": "V:/Projects/Simonida/push_github.R",
-    "project_path": null,
+    "id": "3C237EA3",
+    "path": "D:/geneCOCOA/R/geneCOCOA.R",
+    "project_path": "R/geneCOCOA.R",
     "type": "r_source",
     "hash": "0",
     "contents": "",
-    "dirty": true,
-    "created": 1731420555671.0,
+    "dirty": false,
+    "created": 1731420518426.0,
     "source_on_save": false,
-    "relative_order": 2,
+    "relative_order": 1,
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "21,0",
-        "scrollLine": "12"
+        "cursorPosition": "11,0",
+        "scrollLine": "0"
     },
     "folds": "",
-    "lastKnownWriteTime": 1695800744,
+    "lastKnownWriteTime": 1731931366,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1731420900393,
+    "last_content_update": 1731931366465,
     "read_only": false,
     "read_only_alternatives": []
 }

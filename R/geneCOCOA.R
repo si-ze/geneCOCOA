@@ -1,6 +1,7 @@
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose))
 #' @rawNamespace import(psych, except=c(alpha, rescale, "%+%"))
 #' @rawNamespace import(scales, except=c(discard, alpha))
+#' @rawNamespace import(VGAM except=c(fisherz, logit, logistic))
 #' @import dplyr purrr forcats
 #' @import ggplot2 ggrepel ggpp stringr
 #' @import msigdbr gemma.R
@@ -1206,7 +1207,7 @@ get_differential_results <- function(treatment_res, control_res,
 #'
 
 plot_differential_results <- function(diff_df, sig_label_cutoff=0.05, output_dir=getwd(),
-                                                GOI="GOI", condition="" # only needed for laplace_parameters="Estimate"
+                                                GOI="GOI", condition=""
 )
 {
 
@@ -1245,8 +1246,8 @@ plot_differential_results <- function(diff_df, sig_label_cutoff=0.05, output_dir
     scale_y_continuous(bquote("Conditional significance [" ~ -log[10] ~ "(min(" ~ P[adj] ~ "))]")) +
     theme(axis.title = element_text(size=14),
           axis.text = element_text(size=12))
-  ggsave(paste0(plot_prefix, ".MA_plot.png"), plot=volcano_plot, width=80, height=50, units = "mm")
-  ggsave(paste0(plot_prefix, ".MA_plot.svg"), plot=volcano_plot, width=80, height=50, units = "mm", device=svglite::svglite)
+  ggsave(paste0(plot_prefix, ".MA_plot.png"), plot=MA_plot, width=80, height=50, units = "mm")
+  ggsave(paste0(plot_prefix, ".MA_plot.svg"), plot=MA_plot, width=80, height=50, units = "mm", device=svglite::svglite)
 
 
 

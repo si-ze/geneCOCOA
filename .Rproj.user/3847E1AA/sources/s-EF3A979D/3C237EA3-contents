@@ -1,6 +1,7 @@
 #' @rawNamespace import(data.table, except = c(last, first, between, transpose))
 #' @rawNamespace import(psych, except=c(alpha, rescale, "%+%"))
 #' @rawNamespace import(scales, except=c(discard, alpha))
+#' @rawNamespace import(VGAM except=c(fisherz, logit, logistic))
 #' @import dplyr purrr forcats
 #' @import ggplot2 ggrepel ggpp stringr
 #' @import msigdbr gemma.R
@@ -1122,8 +1123,8 @@ estimate_laplace_parameters <- function(treatment_df=data.frame(), control_df=da
 #'
 #'
 get_differential_results <- function(treatment_res, control_res,
-                                               GOI,
-                                               geneset_collection,
+                                               GOI="",
+                                               geneset_collection="",
                                                include_low_power=TRUE,
                                                laplace_parameters="Default", # options: "Default", "Laplace", "Estimate"
                                                treatment_df=data.frame(), # only needed for laplace_parameters="Estimate"
@@ -1158,20 +1159,16 @@ get_differential_results <- function(treatment_res, control_res,
 
 
 
-  if (laplace_paramters=="Default") {
+  if (laplace_parameters=="Default") {
     location_est <- 0.007595472
     scale_est <-   1.661423
   } else if (laplace_parameters=="Laplace") {
     location_est <- 0
     scale_est <-   1
   } else if (laplace_parameters=="Estimate") {
-    # run function
-
-
-    # randomise data frames
-    # run gene COCOA for
-
-
+    my_estimate <- estimate_laplace_parameters(treatment_df=treatment_df, control_df=control_df, GOI=GOI, geneset_collection=geneset_collection)
+    location_est <- as.numeric(my_estimate$location)
+    scale_est <- as.numeric(my_estimate$scale)
   } else {
     message("Please choose between values 'Default', 'Laplace', or 'Estimate'.")
     message("Data frame will be returned without p-values.")
@@ -1210,7 +1207,7 @@ get_differential_results <- function(treatment_res, control_res,
 #'
 
 plot_differential_results <- function(diff_df, sig_label_cutoff=0.05, output_dir=getwd(),
-                                                GOI="GOI", condition="" # only needed for laplace_parameters="Estimate"
+                                                GOI="GOI", condition=""
 )
 {
 
@@ -1249,8 +1246,8 @@ plot_differential_results <- function(diff_df, sig_label_cutoff=0.05, output_dir
     scale_y_continuous(bquote("Conditional significance [" ~ -log[10] ~ "(min(" ~ P[adj] ~ "))]")) +
     theme(axis.title = element_text(size=14),
           axis.text = element_text(size=12))
-  ggsave(paste0(plot_prefix, ".MA_plot.png"), plot=volcano_plot, width=80, height=50, units = "mm")
-  ggsave(paste0(plot_prefix, ".MA_plot.svg"), plot=volcano_plot, width=80, height=50, units = "mm", device=svglite::svglite)
+  ggsave(paste0(plot_prefix, ".MA_plot.png"), plot=MA_plot, width=80, height=50, units = "mm")
+  ggsave(paste0(plot_prefix, ".MA_plot.svg"), plot=MA_plot, width=80, height=50, units = "mm", device=svglite::svglite)
 
 
 
