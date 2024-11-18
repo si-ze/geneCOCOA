@@ -2,8 +2,7 @@
 % Please edit documentation in R/geneCOCOA.R
 \name{estimate_laplace_parameters}
 \alias{estimate_laplace_parameters}
-\title{Returns a ggplot with x=-log10(p.adj), y=mean coexpression of the gene set with the GOI.
-This function works but \code{\link{plot_volcano}} is more informative.}
+\title{Fits a Laplace distribution to the given expression data of treatment and control.}
 \usage{
 estimate_laplace_parameters(
   treatment_df = data.frame(),
@@ -34,9 +33,8 @@ estimate_laplace_parameters(
 \item{histo_breaks}{How many breaks should the histogram have? Default: 100.}
 }
 \value{
-Returns a named list with "location" (the location estimate / mean of the fitted Laplace distribution), "scale" (the scale / standard deviation of the fitted Laplace distribution) and "ks.test" (the result of the Kolmogorov Smirnov test).
+Returns a named list with "location" (the location estimate / mean of the fitted Laplace distribution), "scale" (the scale / standard deviation of the fitted Laplace distribution) and "ks_test" (the result of the Kolmogorov Smirnov test).
 }
 \description{
-Returns a ggplot with x=-log10(p.adj), y=mean coexpression of the gene set with the GOI.
-This function works but \code{\link{plot_volcano}} is more informative.
+Fits a Laplace distribution to the given expression data of treatment and control.
 }

@@ -979,8 +979,7 @@ get_msigdb_genesets <- function(genesets="", remove_prefix=TRUE) {
 
 
 
-#' Returns a ggplot with x=-log10(p.adj), y=mean coexpression of the gene set with the GOI.
-#' This function works but \code{\link{plot_volcano}} is more informative.
+#' Fits a Laplace distribution to the given expression data of treatment and control.
 #'
 #' @param treatment_df Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
 #' @param control_df Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
@@ -990,7 +989,7 @@ get_msigdb_genesets <- function(genesets="", remove_prefix=TRUE) {
 #' @param plot_ECDF  Should the ECDF of the Laplace fitting be plotted? Default: true.
 #' @param plot_histo  Should the histogram of the Laplace fitting be plotted? Default: true.
 #' @param histo_breaks How many breaks should the histogram have? Default: 100.
-#' @return Returns a named list with "location" (the location estimate / mean of the fitted Laplace distribution), "scale" (the scale / standard deviation of the fitted Laplace distribution) and "ks.test" (the result of the Kolmogorov Smirnov test).
+#' @return Returns a named list with "location" (the location estimate / mean of the fitted Laplace distribution), "scale" (the scale / standard deviation of the fitted Laplace distribution) and "ks_test" (the result of the Kolmogorov Smirnov test).
 #' @export
 estimate_laplace_parameters <- function(treatment_df=data.frame(), control_df=data.frame(),
                                         GOI, geneset_collection,
@@ -1099,7 +1098,7 @@ estimate_laplace_parameters <- function(treatment_df=data.frame(), control_df=da
   return ( list(
     "location"=location_est,
     "scale"=scale_est,
-    "ks.test"=ks_test
+    "ks_test"=ks_test
   ))
 
 } # END FUNCTION estimate_laplace_parameters
@@ -1117,7 +1116,7 @@ estimate_laplace_parameters <- function(treatment_df=data.frame(), control_df=da
 #' @param treatment_df Only needed for laplace_parameters="Estimate". Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
 #' @param control_df Only needed for laplace_parameters="Estimate". Expression matrix of treatment condition (gene sets associated more strongly with GOI in this condition will appear on the right-hand side of the plot).
 #' @return Returns differential GeneCOCOA results: a data frame with with columns "geneset", "p_control", "p_adj_control", "p_disease". "p_adj_disease", "p_ratio", "log10_p_ratio", "neglog10_p_ratio", "differential_p"
-#' @import VGAM
+#' @rawNamespace import(VGAM except=c(fisherz, logit, logistic))
 #' @export
 #'
 #'
@@ -1237,9 +1236,13 @@ plot_differential_results <- function(diff_df, sig_label_cutoff=0.05, output_dir
 
   MA_plot <- ggplot(plot_df, aes(y=(-1)*log10(min_p_adj), x=neglog10_p_ratio)) +
     geom_point(alpha=0.5, aes(col = col, size=(-1)*log10(differential_p))) +
-    # scale_x_continuous(limits=c(0,4), oob=scales::squish) +
+    geom_text_repel(aes(label=label),
+                    size = 5/.pt, col = "black",
+                    segment.color = "black", segment.alpha = 0.4,
+                    position = position_nudge_center(direction = "split"),
+                    hjust = "outward", vjust = "outward",
+                    lineheight=0.7) +
     theme_bw() +
-    geom_text_repel(aes(label=label)) +
     scale_colour_manual("Association tendency",
                         labels=c("n.s.", "Disease", "Control"), values=c("grey", "firebrick", "dodgerblue4")) +
     labs(size=bquote(-log[10](P[differential]))) +
@@ -1274,17 +1277,17 @@ plot_differential_results <- function(diff_df, sig_label_cutoff=0.05, output_dir
                     position = position_nudge_center(direction = "split"),
                     hjust = "outward", vjust = "outward",
                     lineheight=0.7) +
+    theme_bw() +
     scale_colour_manual("Association tendency",
                         labels=c("n.s.", "Disease", "Control"), values=c("grey", "firebrick", "dodgerblue4")) +
-    theme_bw() +
     theme(text=element_text(size=7),
           axis.text = element_text(colour = 'black'),
           axis.line = element_line(),
           panel.border = element_blank(),
           axis.ticks = element_line(colour = 'black'),
           strip.background = element_rect(colour = NA)) +
-    scale_y_continuous(bquote(-log[10](DifferentialP))) +
-    scale_x_continuous(bquote(-log[10](P[disease]/P[control])))
+    scale_y_continuous(bquote(-log[10](P[DS]))) +
+    scale_x_continuous(bquote(DS[obs]))
   ggsave(paste0(plot_prefix, ".volcano_plot.png"), plot=volcano_plot, width=80, height=50, units = "mm")
   ggsave(paste0(plot_prefix, ".volcano_plot.svg"), plot=volcano_plot, width=80, height=50, units = "mm", device=svglite::svglite)
 
