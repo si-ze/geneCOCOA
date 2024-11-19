@@ -77,45 +77,88 @@ The plot is returned as a ggplot2 object by the function. If you would additiona
 
 
 
-### Side-by-side comparison of two GeneCOCOA results (same GOI, different conditions)
-GeneCOCOA also offers the option to visually compare the GeneCOCOA results for one GOI in two different conditions (diverging bar plot). 
+### Differential GeneCOCOA (same GOI, same gene set collection, different conditions)
+GeneCOCOA also offers the option to differentially test the association of one GOI with a collection of gene sets in two conditions.  
 
-Therefore, we need to pass two results (produced by the `get_stats()` function). Please make sure that these were run with the **same GOI** and the **same geneset_collection**. (The function can only visualise two GeneCOCOA results, not check the validity of the comparison.)
+Therefore, we need to pass two results (produced by the `get_stats()` function). Please make sure that these were run with the **same GOI** and the **same geneset_collection**. 
 
-For our example, we first need to generate GeneCOCOA results for the FH control samples as well.
+For our example, we first need to generate GeneCOCOA results for both the FH disease and the FH control samples. 
 
 
 ``` 
-# select only the columns containing control expression data
+library(devtools)
+devtools::install_github("si-ze/geneCOCOA", lib="/mnt/f/Rlib")
+library(geneCOCOA)
+library(gemma.R)
+library(dplyr)
+
+
+# get data on familial hypercholesterolemia
+FH <- as.data.frame(gemma.R::get_dataset_expression("GSE6054"))
+FH <- FH[nchar(FH$GeneSymbol)>0,]
+FH$Probe = FH$GeneName = FH$NCBIid = NULL
+FH$GeneSymbol <- sub("[|].*", "",FH$GeneSymbol)
+# summarise expression values on gene level
+FH <-  group_by(FH, GeneSymbol) %>%
+  summarize_at(c(1:(ncol(FH)-1)), sum) %>% as.data.frame()
+# assign gene symbols as row names
+rownames(FH) = FH$GeneSymbol
+
+# get disease expression matrix (with gene symbols as row names)
+FH_disease <- FH %>% select(contains("FH"))
+# get control expression matrix (with gene symbols as row names)
 FH_control <- FH %>% select(contains("Control"))
 
-# prepare expression data as GeneCOCOA input
-control_input <- get_expr_info(expr=FH_control, GOI="LDLR")
 
-# run GeneCOCOA
-control_res <- get_stats(geneset_collection=hallmark_sets, 
-                         GOI="LDLR", 
-                         GOI_expr=control_input$GOI_expr,
-                         expr_df=control_input$expr_df, 
-                         samplesize=2, nsims=1000)
+# define list of gene sets to be differentially analysed regarding their association with the GOI
+hallmark_sets <- get_msigdb_genesets("HALLMARK")
+
+# prepare input expression info for GeneCOCOA
+expr_info.LDLR.FH_disease <- get_expr_info(expr=FH_disease, GOI="LDLR")
+# run GeneCOCOA on control data set to get Condition P-values (indicating significance of association between GOI and gene set in disease)
+res.LDLR.FH_disease <- get_stats(geneset_collection=hallmark_sets, GOI="LDLR", GOI_expr=expr_info.LDLR.FH_disease$GOI_expr, expr_df=expr_info.LDLR.FH_disease$expr_df, samplesize=2, nsims=1000)
+
+# prepare input expression info for GeneCOCOA
+expr_info.LDLR.FH_control <- get_expr_info(expr=FH_control, GOI="LDLR")
+# run GeneCOCOA on control data set to get Condition P-values (indicating significance of association between GOI and gene set in control)
+res.LDLR.FH_control <- get_stats(geneset_collection=hallmark_sets, GOI="LDLR", GOI_expr=expr_info.LDLR.FH_control$GOI_expr, expr_df=expr_info.LDLR.FH_control$expr_df, samplesize=2, nsims=1000)
 ```
 
-Next, we pass the two results to `plot_control_vs_treatment()`. 
-
+Next, we pass the two results to the differential function. 
 
 ```
-plot_control_vs_treatment(
-  control_res=control_res,
-  treatment_res=control_res,
-  treatment_label="FH",
-  control_label="control",
-  topN <- 10,
-  sort_by="treament"
-)
+# feed the two Condition results into differential function 
+differential_results <- get_differential_results(res.LDLR.FH_disease, res.LDLR.FH_control, 
+                                      GOI="LDLR", geneset_collection="HALLMARK", 
+                                      laplace_parameters = "Default")
 ```
-The "treatment" and "control" labels and the respective colours can be customised. The function returns the top n terms (customisable via the `topN` parameter), either with respect to the control or the treatment condition (`sort_by` parameter). 
-The resulting plot is returned as a ggplot2 object by the function. If you would additionally like to save it directly, you can pass a location via the optional `filepath` parameter, e.g. `filepath="./LDLR.FH.diverging_bars.png"`.
+
+This function returns a table: 
+```
+# > head(differential_results)
+#               geneset    p_control p_adj_control    p_disease p_adj_disease
+# 1        ADIPOGENESIS 4.912080e-03  2.824446e-02 8.827597e-01  1.000000e+00
+# 2 ALLOGRAFT_REJECTION 9.613390e-01  9.999999e-01 2.021361e-01  4.893822e-01
+# 3   ANDROGEN_RESPONSE 7.491303e-06  6.891999e-05 1.956240e-08  1.799740e-07
+# 4        ANGIOGENESIS 9.966363e-01  9.966363e-01 5.295860e-01  9.666187e-01
+# 5     APICAL_JUNCTION 4.700123e-02  1.801714e-01 1.495597e-08  1.719937e-07
+# 6      APICAL_SURFACE 7.594417e-01  9.999999e-01 4.276494e-01  8.941761e-01
+#        p_ratio log10_p_ratio neglog10_p_ratio differential_p
+# 1 1.797120e+02     2.2545771       -2.2545771     0.25860745
+# 2 2.102652e-01    -0.6772327        0.6772327     0.66827842
+# 3 2.611348e-03    -2.5831353        2.5831353     0.21220528
+# 4 5.313734e-01    -0.2746002        0.2746002     0.85154028
+# 5 3.182039e-07    -6.4972946        6.4972946     0.02011863
+# 6 5.631102e-01    -0.2494066        0.2494066     0.86455135
+```
+
+To visualise this, we use the following function, which outputs the results to images in the current working directory (but we can specify the output location via the  `output_dir` parameter - check the help page of `plot_differential_results` for usage. 
 
 
-<img align="center" width="60%" height="60%" src="https://github.com/si-ze/geneCOCOA/assets/129768077/48d9caaf-b6bd-4921-8712-1b0672f34739">
+<img align="center" width="60%" height="60%" src="https://github.com/user-attachments/assets/3cfacb33-9323-4697-a2ef-890dc2b5276f">
+
+
+
+
+
 
