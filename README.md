@@ -158,7 +158,9 @@ To visualise this, we use the following function, which outputs the results to i
 <img align="center" width="60%" height="60%" src="https://github.com/user-attachments/assets/3cfacb33-9323-4697-a2ef-890dc2b5276f">
 
 
+### System & Resource Requirements
+GeneCOCOA is run with R (version 4.2.2 or higher). In memory profiling, we observed a peak memory consumption of 2.67 GB running GeneCOCOA on a large expression data set (135 patients), inspecting the relationship of a GOI with gene sets in a large collections (7608 sets). A moderately sized data set (n=10) on a small gene set collection (50 sets) requires ~0.5 GB of RAM. Runtimes range between 0.87 and 1.76 seconds per term, depending on the gene set collection and expression data set loaded. Memory and time profiling is illustrated in the graphs below: 
 
-
+<img align="center" src="https://github.com/user-attachments/assets/6221296b-598f-4a4c-b2ed-af79e2bd1206">
 
 
